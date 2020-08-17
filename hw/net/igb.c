@@ -58,7 +58,6 @@
 #define TYPE_IGBVF "igbvf"
 #define IGBVF(obj) OBJECT_CHECK(IgbState, (obj), TYPE_IGBVF)
 
-#define IGB_MSIX_BAR 3
 #define IGB_MSIX_VECTORS_PF 10
 #define IGB_MSIX_VECTORS_VF 3
 #define IGB_CAP_SRIOV_OFFSET 0x160
@@ -86,6 +85,11 @@ typedef struct IgbState {
 
     E1000ECore core;
 } IgbState;
+
+#define IGB_MMIO_BAR_IDX    0
+#define IGB_FLASH_BAR_IDX   1
+#define IGB_IO_BAR_IDX      2
+#define IGB_MSIX_BAR_IDX    3
 
 #define IGB_MMIO_SIZE    (128 * 1024)
 #define IGB_FLASH_SIZE   (128 * 1024)
@@ -361,21 +365,25 @@ static void pci_igb_realize(PCIDevice *d, Error **errp)
     /* BAR0: MMIO */
     memory_region_init_io(&igb->mmio, OBJECT(d), &mmio_ops, igb,
                           "igb-mmio", IGB_MMIO_SIZE);
-    pci_register_bar(d, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &igb->mmio);
+    pci_register_bar(d, IGB_MMIO_BAR_IDX,
+                     PCI_BASE_ADDRESS_SPACE_MEMORY, &igb->mmio);
 
     /* BAR1: flash memory (dummy) */
     memory_region_init(&igb->flash, OBJECT(d),
                           "igb-flash", IGB_FLASH_SIZE);
-    pci_register_bar(d, 1, PCI_BASE_ADDRESS_SPACE_MEMORY, &igb->flash);
+    pci_register_bar(d, IGB_FLASH_BAR_IDX,
+                     PCI_BASE_ADDRESS_SPACE_MEMORY, &igb->flash);
 
     /* BAR2: I/O ports */
     memory_region_init_io(&igb->io, OBJECT(d), &io_ops, igb,
                           "igb-io", IGB_IO_SIZE);
-    pci_register_bar(d, 2, PCI_BASE_ADDRESS_SPACE_IO, &igb->io);
+    pci_register_bar(d, IGB_IO_BAR_IDX,
+                     PCI_BASE_ADDRESS_SPACE_IO, &igb->io);
 
     /* BAR3: MSIX table */
     memory_region_init(&igb->msix, OBJECT(d), "igb-msix", 0x4000);
-    pci_register_bar(d, 3, PCI_BASE_ADDRESS_MEM_TYPE_64, &igb->msix);
+    pci_register_bar(d, IGB_MSIX_BAR_IDX,
+                     PCI_BASE_ADDRESS_MEM_TYPE_64, &igb->msix);
 
     /* Add PCI capabilities in reverse order: */
     ret = pcie_endpoint_cap_init(d, 0xa0);
@@ -383,8 +391,10 @@ static void pci_igb_realize(PCIDevice *d, Error **errp)
         goto err_pcie_cap;
     }
 
-    ret = msix_init(d, IGB_MSIX_VECTORS_PF, &igb->msix, IGB_MSIX_BAR, 0, &igb->msix,
-                    IGB_MSIX_BAR, 0x2000, 0x70, errp);
+    ret = msix_init(d, IGB_MSIX_VECTORS_PF,
+                    &igb->msix, IGB_MSIX_BAR_IDX, 0,
+                    &igb->msix, IGB_MSIX_BAR_IDX, 0x2000,
+                    0x70, errp);
     if (ret) {
         goto err_msix;
     }
@@ -527,8 +537,9 @@ static void pci_igbvf_realize(PCIDevice *d, Error **errp)
 
     memory_region_init(mr, OBJECT(d), "igbvf-msix", 0x8000);
     pcie_sriov_vf_register_bar(d, 3, mr);
-    ret = msix_init(d, IGB_MSIX_VECTORS_VF, mr, IGB_MSIX_BAR, 0, mr,
-                    IGB_MSIX_BAR, 0x2000, 0x70, errp);
+    ret = msix_init(d, IGB_MSIX_VECTORS_VF, mr,
+                    IGB_MSIX_BAR_IDX, 0, mr,
+                    IGB_MSIX_BAR_IDX, 0x2000, 0x70, errp);
     if (ret) {
         goto err_msix;
     }
