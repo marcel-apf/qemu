@@ -22,7 +22,7 @@
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU Lesser General Public
 * License as published by the Free Software Foundation; either
-* version 2.1 of the License, or (at your option) any later version.
+* version 2 of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -45,7 +45,7 @@
 #include "net_rx_pkt.h"
 
 #include "e1000x_common.h"
-#include "e1000e_core.h"
+#include "igb_core.h"
 
 #include "trace.h"
 
@@ -434,16 +434,23 @@ e1000e_intrmgr_pci_unint(E1000ECore *core)
 {
     int i;
 
+    timer_del(core->radv.timer);
     timer_free(core->radv.timer);
+    timer_del(core->rdtr.timer);
     timer_free(core->rdtr.timer);
+    timer_del(core->raid.timer);
     timer_free(core->raid.timer);
 
+    timer_del(core->tadv.timer);
     timer_free(core->tadv.timer);
+    timer_del(core->tidv.timer);
     timer_free(core->tidv.timer);
 
+    timer_del(core->itr.timer);
     timer_free(core->itr.timer);
 
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
+        timer_del(core->eitr[i].timer);
         timer_free(core->eitr[i].timer);
     }
 }
@@ -948,8 +955,7 @@ e1000e_has_rxbufs(E1000ECore *core, const E1000E_RingInfo *r,
                          core->rx_desc_buf_size;
 }
 
-void
-e1000e_start_recv(E1000ECore *core)
+void igb_start_recv(E1000ECore *core)
 {
     int i;
 
@@ -960,8 +966,7 @@ e1000e_start_recv(E1000ECore *core)
     }
 }
 
-bool
-e1000e_can_receive(E1000ECore *core)
+bool igb_can_receive(E1000ECore *core)
 {
     int i;
 
@@ -984,15 +989,14 @@ e1000e_can_receive(E1000ECore *core)
     return false;
 }
 
-ssize_t
-e1000e_receive(E1000ECore *core, const uint8_t *buf, size_t size)
+ssize_t igb_receive(E1000ECore *core, const uint8_t *buf, size_t size)
 {
     const struct iovec iov = {
         .iov_base = (uint8_t *)buf,
         .iov_len = size
     };
 
-    return e1000e_receive_iov(core, &iov, 1);
+    return igb_receive_iov(core, &iov, 1);
 }
 
 static inline bool
@@ -1589,12 +1593,12 @@ e1000e_write_packet_to_guest(E1000ECore *core, struct NetRxPkt *pkt,
                           (const char *) &fcs_pad, e1000x_fcs_len(core->mac));
                 }
             }
+            desc_offset += desc_size;
+            if (desc_offset >= total_size) {
+                is_last = true;
+            }
         } else { /* as per intel docs; skip descriptors with null buf addr */
             trace_e1000e_rx_null_descriptor();
-        }
-        desc_offset += desc_size;
-        if (desc_offset >= total_size) {
-            is_last = true;
         }
 
         e1000e_write_rx_descr(core, desc, is_last ? core->rx_pkt : NULL,
@@ -1621,8 +1625,7 @@ e1000e_rx_fix_l4_csum(E1000ECore *core, struct NetRxPkt *pkt)
     }
 }
 
-ssize_t
-e1000e_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
+ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
 {
     static const int maximum_ethernet_hdr_len = (14 + 4);
     /* Min. octets in an ethernet frame sans FCS */
@@ -1790,8 +1793,7 @@ e1000e_set_phy_page(E1000ECore *core, int index, uint16_t val)
     core->phy[0][PHY_PAGE] = val & PHY_PAGE_RW_MASK;
 }
 
-void
-e1000e_core_set_link_status(E1000ECore *core)
+void igb_core_set_link_status(E1000ECore *core)
 {
     NetClientState *nc = qemu_get_queue(core->owner_nic);
     uint32_t old_status = core->mac[STATUS];
@@ -1807,7 +1809,7 @@ e1000e_core_set_link_status(E1000ECore *core)
                                    core->autoneg_timer);
         } else {
             e1000x_update_regs_on_link_up(core->mac, core->phy[0]);
-            e1000e_start_recv(core);
+            igb_start_recv(core);
         }
     }
 
@@ -1936,7 +1938,7 @@ e1000e_set_rx_control(E1000ECore *core, int index, uint32_t val)
         core->rxbuf_min_shift = ((val / E1000_RCTL_RDMTS_QUAT) & 3) + 1 +
                                 E1000_RING_DESC_LEN_SHIFT;
 
-        e1000e_start_recv(core);
+        igb_start_recv(core);
     }
 }
 
@@ -2193,13 +2195,16 @@ e1000e_set_interrupt_cause(E1000ECore *core, uint32_t val)
     e1000e_update_interrupt_state(core);
 }
 
+/* Temporary solution to make the changes clearer: */
+#include "igb_intr.c"
+
 static inline void
 e1000e_autoneg_timer(void *opaque)
 {
     E1000ECore *core = opaque;
     if (!qemu_get_queue(core->owner_nic)->link_down) {
         e1000x_update_regs_on_autoneg_done(core->mac, core->phy[0]);
-        e1000e_start_recv(core);
+        igb_start_recv(core);
 
         e1000e_update_flowctl_status(core);
         /* signal link status change to the guest */
@@ -2237,6 +2242,7 @@ static const char e1000e_phy_regcap[E1000E_PHY_PAGES][0x20] = {
         [PHY_OEM_BITS]          = PHY_RW,
         [PHY_BIAS_1]            = PHY_RW,
         [PHY_BIAS_2]            = PHY_RW,
+        [PHY_PAGE_SELECT]       = PHY_RW,
         [PHY_COPPER_INT_ENABLE] = PHY_RW,
         [PHY_COPPER_STAT2]      = PHY_R,
         [PHY_COPPER_CTRL2]      = PHY_RW
@@ -2329,7 +2335,7 @@ e1000e_set_rdt(E1000ECore *core, int index, uint32_t val)
 {
     core->mac[index] = val & 0xffff;
     trace_e1000e_rx_set_rdt(e1000e_mq_queue_idx(RDT0, index), val);
-    e1000e_start_recv(core);
+    igb_start_recv(core);
 }
 
 static void
@@ -3037,6 +3043,7 @@ static const readops e1000e_macreg_readops[] = {
     [SWSM]    = e1000e_mac_swsm_read,
     [IMS]     = e1000e_mac_ims_read,
 
+    /* TBD: These are E1000E specific: */
     [CRCERRS ... MPC]      = e1000e_mac_readreg,
     [IP6AT ... IP6AT + 3]  = e1000e_mac_readreg,
     [IP4AT ... IP4AT + 6]  = e1000e_mac_readreg,
@@ -3053,7 +3060,18 @@ static const readops e1000e_macreg_readops[] = {
     [RETA ... RETA + 31]   = e1000e_mac_readreg,
     [RSSRK ... RSSRK + 31] = e1000e_mac_readreg,
     [MAVTV0 ... MAVTV3]    = e1000e_mac_readreg,
-    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = e1000e_mac_eitr_read
+    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = e1000e_mac_eitr_read,
+
+    /* IGB specific - should go in a disjoint struct
+     * but put here now just to make diffs easier:
+     */
+    [FWSM]       = e1000e_mac_readreg,
+    [SW_FW_SYNC] = e1000e_mac_readreg,
+    [HTCBDPC]    = e1000e_mac_read_clr4,
+    [EICR]       = e1000e_mac_read_clr4,
+    [EIMS]       = e1000e_mac_readreg,
+    [EIAM]       = e1000e_mac_readreg,
+    [I_IVAR ... I_IVAR + 32] = e1000e_mac_readreg,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
 
@@ -3206,7 +3224,20 @@ static const writeops e1000e_macreg_writeops[] = {
     [RETA ... RETA + 31]     = e1000e_mac_writereg,
     [RSSRK ... RSSRK + 31]   = e1000e_mac_writereg,
     [MAVTV0 ... MAVTV3]      = e1000e_mac_writereg,
-    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = e1000e_set_eitr
+    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = e1000e_set_eitr,
+
+    /* IGB specific - should go in a disjoint struct
+     * but put here now just to make changes comprehensible:
+     */
+    [FWSM]     = e1000e_mac_writereg,
+    [SW_FW_SYNC] = e1000e_mac_writereg,
+    [EICR] = igb_set_eicr,
+    [EICS] = igb_set_eics,
+    [EIAC] = igb_set_eiac,
+    [EIAM] = igb_set_eiam,
+    [EIMC] = igb_set_eimc,
+    [EIMS] = igb_set_eims,
+    [I_IVAR ... I_IVAR + 32] = e1000e_mac_writereg,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
@@ -3243,8 +3274,7 @@ static const uint16_t mac_reg_access[E1000E_MAC_SIZE] = {
     [MAVTV0 ... MAVTV3] = MAC_ACCESS_PARTIAL
 };
 
-void
-e1000e_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size)
+void igb_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size)
 {
     uint16_t index = e1000e_get_reg_index_with_offset(mac_reg_access, addr);
 
@@ -3261,8 +3291,7 @@ e1000e_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size)
     }
 }
 
-uint64_t
-e1000e_core_read(E1000ECore *core, hwaddr addr, unsigned size)
+uint64_t igb_core_read(E1000ECore *core, hwaddr addr, unsigned size)
 {
     uint64_t val;
     uint16_t index = e1000e_get_reg_index_with_offset(mac_reg_access, addr);
@@ -3298,7 +3327,7 @@ e1000e_autoneg_resume(E1000ECore *core)
 }
 
 static void
-e1000e_vm_state_change(void *opaque, bool running, RunState state)
+e1000e_vm_state_change(void *opaque, int running, RunState state)
 {
     E1000ECore *core = opaque;
 
@@ -3313,11 +3342,10 @@ e1000e_vm_state_change(void *opaque, bool running, RunState state)
     }
 }
 
-void
-e1000e_core_pci_realize(E1000ECore     *core,
-                        const uint16_t *eeprom_templ,
-                        uint32_t        eeprom_size,
-                        const uint8_t  *macaddr)
+void igb_core_pci_realize(E1000ECore     *core,
+                          const uint16_t *eeprom_templ,
+                          uint32_t        eeprom_size,
+                          const uint8_t  *macaddr)
 {
     int i;
 
@@ -3343,11 +3371,11 @@ e1000e_core_pci_realize(E1000ECore     *core,
     e1000e_update_rx_offloads(core);
 }
 
-void
-e1000e_core_pci_uninit(E1000ECore *core)
+void igb_core_pci_uninit(E1000ECore *core)
 {
     int i;
 
+    timer_del(core->autoneg_timer);
     timer_free(core->autoneg_timer);
 
     e1000e_intrmgr_pci_unint(core);
@@ -3444,8 +3472,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,
 };
 
-void
-e1000e_core_reset(E1000ECore *core)
+void igb_core_reset(E1000ECore *core)
 {
     int i;
 
@@ -3473,7 +3500,7 @@ e1000e_core_reset(E1000ECore *core)
     }
 }
 
-void e1000e_core_pre_save(E1000ECore *core)
+void igb_core_pre_save(E1000ECore *core)
 {
     int i;
     NetClientState *nc = qemu_get_queue(core->owner_nic);
@@ -3495,8 +3522,7 @@ void e1000e_core_pre_save(E1000ECore *core)
     }
 }
 
-int
-e1000e_core_post_load(E1000ECore *core)
+int igb_core_post_load(E1000ECore *core)
 {
     NetClientState *nc = qemu_get_queue(core->owner_nic);
 

@@ -22,7 +22,7 @@
 * This library is free software; you can redistribute it and/or
 * modify it under the terms of the GNU Lesser General Public
 * License as published by the Free Software Foundation; either
-* version 2.1 of the License, or (at your option) any later version.
+* version 2 of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -33,8 +33,8 @@
 * License along with this library; if not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef HW_NET_E1000E_CORE_H
-#define HW_NET_E1000E_CORE_H
+#ifndef HW_NET_IGB_CORE_H
+#define HW_NET_IGB_CORE_H
 
 #define E1000E_PHY_PAGE_SIZE    (0x20)
 #define E1000E_PHY_PAGES        (0x07)
@@ -42,6 +42,12 @@
 #define E1000E_EEPROM_SIZE      (64)
 #define E1000E_MSIX_VEC_NUM     (5)
 #define E1000E_NUM_QUEUES       (2)
+
+/* TBD: handle igb sizes, vectors = 25, queues = 16!
+ * Just set some conservative values here to work with for now
+ */
+#define IGB_MSIX_VEC_NUM     (5)
+#define IGB_NUM_QUEUES       (2)
 
 typedef struct E1000Core E1000ECore;
 
@@ -116,43 +122,31 @@ struct E1000Core {
     uint32_t msi_causes_pending;
 };
 
-void
-e1000e_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size);
+void igb_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size);
 
-uint64_t
-e1000e_core_read(E1000ECore *core, hwaddr addr, unsigned size);
+uint64_t igb_core_read(E1000ECore *core, hwaddr addr, unsigned size);
 
-void
-e1000e_core_pci_realize(E1000ECore      *regs,
-                       const uint16_t *eeprom_templ,
-                       uint32_t        eeprom_size,
-                       const uint8_t  *macaddr);
+void igb_core_pci_realize(E1000ECore     *regs,
+                          const uint16_t *eeprom_templ,
+                          uint32_t        eeprom_size,
+                          const uint8_t  *macaddr);
 
-void
-e1000e_core_reset(E1000ECore *core);
+void igb_core_reset(E1000ECore *core);
 
-void
-e1000e_core_pre_save(E1000ECore *core);
+void igb_core_pre_save(E1000ECore *core);
 
-int
-e1000e_core_post_load(E1000ECore *core);
+int igb_core_post_load(E1000ECore *core);
 
-void
-e1000e_core_set_link_status(E1000ECore *core);
+void igb_core_set_link_status(E1000ECore *core);
 
-void
-e1000e_core_pci_uninit(E1000ECore *core);
+void igb_core_pci_uninit(E1000ECore *core);
 
-bool
-e1000e_can_receive(E1000ECore *core);
+bool igb_can_receive(E1000ECore *core);
 
-ssize_t
-e1000e_receive(E1000ECore *core, const uint8_t *buf, size_t size);
+ssize_t igb_receive(E1000ECore *core, const uint8_t *buf, size_t size);
 
-ssize_t
-e1000e_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt);
+ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt);
 
-void
-e1000e_start_recv(E1000ECore *core);
+void igb_start_recv(E1000ECore *core);
 
 #endif
