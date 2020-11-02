@@ -48,7 +48,7 @@
 #include "migration/vmstate.h"
 #include "hw/net/igb_regs.h"
 #include "e1000x_common.h"
-#include "e1000e_core.h"
+#include "igb_core.h"
 
 #include "trace.h"
 #include "qapi/error.h"
@@ -100,7 +100,7 @@ static void igb_write_config(PCIDevice *d, uint32_t address,
 
     if (range_covers_byte(address, len, PCI_COMMAND) &&
         (d->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
-        e1000e_start_recv(&s->core);
+        igb_start_recv(&s->core);
     }
 }
 
@@ -114,21 +114,21 @@ static void igbvf_write_config(PCIDevice *d, uint32_t address,
 
     if (range_covers_byte(address, len, PCI_COMMAND) &&
         (d->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
-        //e1000e_start_recv(&s->core);
+        //igb_start_recv(&s->core);
     }
 }
 
 static uint64_t igb_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
     IgbState *s = opaque;
-    return e1000e_core_read(&s->core, addr, size);
+    return igb_core_read(&s->core, addr, size);
 }
 
 static void igb_mmio_write(void *opaque, hwaddr addr,
                            uint64_t val, unsigned size)
 {
     IgbState *s = opaque;
-    e1000e_core_write(&s->core, addr, val, size);
+    igb_core_write(&s->core, addr, val, size);
 }
 
 static bool igb_io_get_reg_index(IgbState *s, uint32_t *idx)
@@ -164,7 +164,7 @@ static uint64_t igb_io_read(void *opaque, hwaddr addr, unsigned size)
         return s->ioaddr;
     case E1000_IODATA:
         if (igb_io_get_reg_index(s, &idx)) {
-            val = e1000e_core_read(&s->core, idx, sizeof(val));
+            val = igb_core_read(&s->core, idx, sizeof(val));
             trace_igb_io_read_data(idx, val);
             return val;
         }
@@ -189,7 +189,7 @@ static void igb_io_write(void *opaque, hwaddr addr,
     case E1000_IODATA:
         if (igb_io_get_reg_index(s, &idx)) {
             trace_igb_io_write_data(idx, val);
-            e1000e_core_write(&s->core, idx, val, sizeof(val));
+            igb_core_write(&s->core, idx, val, sizeof(val));
         }
         return;
     default:
@@ -436,7 +436,7 @@ static void pci_igb_realize(PCIDevice *d, Error **errp)
     igb->core.owner = &igb->parent_obj;
     igb->core.owner_nic = igb->nic;
 
-    e1000e_core_pci_realize(&igb->core,
+    igb_core_pci_realize(&igb->core,
                             igb_eeprom_template,
                             sizeof(igb_eeprom_template),
                             macaddr);
@@ -475,7 +475,7 @@ static void igb_reset(DeviceState *dev)
 
     trace_igb_cb_qdev_reset();
     pcie_sriov_pf_disable_vfs(d);
-    e1000e_core_reset(&s->core);
+    igb_core_reset(&s->core);
 
     /* On the igb, the SMBI bit is 0 at reset, while on the e1000e
      * it is set to one, correct this:
@@ -493,7 +493,7 @@ static int igb_pre_save(void *opaque)
 
     trace_igb_cb_pre_save();
 
-    e1000e_core_pre_save(&s->core);
+    igb_core_pre_save(&s->core);
     return 0;
 }
 
@@ -510,7 +510,7 @@ static int igb_post_load(void *opaque, int version_id)
             "(subsys/subsys_ven) differ");
         return -1;
     }
-    return e1000e_core_post_load(&s->core);
+    return igb_core_post_load(&s->core);
 }
 
 static void pci_igbvf_realize(PCIDevice *d, Error **errp)
@@ -631,7 +631,7 @@ static const VMStateDescription igb_vmstate_intr_timer = {
                          igb_vmstate_intr_timer, E1000IntrDelayTimer)
 
 static const VMStateDescription igb_vmstate = {
-    .name = "e1000e",
+    .name = "igb",
     .version_id = 1,
     .minimum_version_id = 1,
     .pre_save = igb_pre_save,
