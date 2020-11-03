@@ -1818,8 +1818,7 @@ void igb_core_set_link_status(E1000ECore *core)
     }
 }
 
-static void
-e1000e_set_ctrl(E1000ECore *core, int index, uint32_t val)
+static void igb_set_ctrl(E1000ECore *core, int index, uint32_t val)
 {
     trace_e1000e_core_ctrl_write(index, val);
 
@@ -1837,7 +1836,7 @@ e1000e_set_ctrl(E1000ECore *core, int index, uint32_t val)
 
     if (val & E1000_CTRL_RST) {
         trace_e1000e_core_ctrl_sw_reset();
-        e1000x_reset_mac_addr(core->owner_nic, core->mac, core->permanent_mac);
+        igb_core_reset(core);
     }
 
     if (val & E1000_CTRL_PHY_RST) {
@@ -3170,7 +3169,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [ICR]      = e1000e_set_icr,
     [EECD]     = e1000e_set_eecd,
     [RCTL]     = e1000e_set_rx_control,
-    [CTRL]     = e1000e_set_ctrl,
+    [CTRL]     = igb_set_ctrl,
     [RDTR]     = e1000e_set_rdtr,
     [RADV]     = e1000e_set_16bit,
     [TADV]     = e1000e_set_16bit,
@@ -3205,7 +3204,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [RXDCTL]   = e1000e_set_rxdctl,
     [FLASHT]   = e1000e_set_16bit,
     [EEWR]     = e1000e_set_eewr,
-    [CTRL_DUP] = e1000e_set_ctrl,
+    [CTRL_DUP] = igb_set_ctrl,
     [RFCTL]    = e1000e_set_rfctl,
     [RA + 1]   = e1000e_mac_setmacaddr,
 
@@ -3431,8 +3430,8 @@ e1000e_phy_reg_init[E1000E_PHY_PAGES][E1000E_PHY_PAGE_SIZE] = {
 };
 
 static const uint32_t e1000e_mac_reg_init[] = {
-    [PBA]           =     0x00140014,
-    [LEDCTL]        =  BIT(1) | BIT(8) | BIT(9) | BIT(15) | BIT(17) | BIT(18),
+    [PBA]           = 0x00140014,
+    [LEDCTL]        = BIT(1) | BIT(8) | BIT(9) | BIT(15) | BIT(17) | BIT(18),
     [EXTCNF_CTRL]   = BIT(3),
     [EEMNGCTL]      = E1000_EEPROM_CFG_DONE | E1000_EEPROM_CFG_DONE_PORT_1 |
                       BIT(31),
@@ -3444,10 +3443,9 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [TIPG]          = 0x8 | (0x8 << 10) | (0x6 << 20),
     [RXCFGL]        = 0x88F7,
     [RXUDP]         = 0x319,
-    [CTRL]          = E1000_CTRL_FD | E1000_CTRL_SWDPIN2 | E1000_CTRL_SWDPIN0 |
-                      E1000_CTRL_SPD_1000 | E1000_CTRL_SLU |
+    [CTRL]          = E1000_CTRL_FD | E1000_CTRL_LRST | E1000_CTRL_SPD_1000 |
                       E1000_CTRL_ADVD3WUC,
-    [STATUS]        =  E1000_STATUS_ASDV_1000 | E1000_STATUS_LU,
+    [STATUS]        = E1000_STATUS_ASDV_1000 | E1000_STATUS_LU,
     [PSRCTL]        = (2 << E1000_PSRCTL_BSIZE0_SHIFT) |
                       (4 << E1000_PSRCTL_BSIZE1_SHIFT) |
                       (4 << E1000_PSRCTL_BSIZE2_SHIFT),
