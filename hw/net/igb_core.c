@@ -3016,6 +3016,9 @@ static const readops e1000e_macreg_readops[] = {
     [TARC0]   = e1000e_get_tarc,
     [PBS]     = E1000E_LOW_BITS_READ(6),
     [ICS]     = e1000e_mac_ics_read,
+    /* 8.8.10: Reading the IMC register returns the value of the IMS register.
+    */
+    [IMC]     = e1000e_mac_ims_read,
     [AIT]     = E1000E_LOW_BITS_READ(16),
     [TORH]    = e1000e_mac_read_clr8,
     [GORCH]   = e1000e_mac_read_clr8,
