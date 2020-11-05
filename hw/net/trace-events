@@ -311,6 +311,10 @@ igb_msix_use_vector_fail(uint32_t vec, int32_t res) "Failed to use MSI-X vector 
 igb_cfg_support_virtio(bool support) "Virtio header supported: %d"
 igb_mac_set_permanent(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4, uint8_t b5) "Set permanent MAC: %02x:%02x:%02x:%02x:%02x:%02x"
 
+# hw/net/igb_core.c
+igb_irq_icr_read(uint32_t icr) "Current ICR: 0x%x"
+igb_irq_icr_write(uint32_t bits, uint32_t old_icr, uint32_t new_icr, bool other) "Clearing ICR bits 0x%x: 0x%x --> 0x%x EICR.Other: %d"
+
 # spapr_llan.c
 spapr_vlan_get_rx_bd_from_pool_found(int pool, int32_t count, uint32_t rx_bufs) "pool=%d count=%"PRId32" rxbufs=%"PRIu32
 spapr_vlan_get_rx_bd_from_page(int buf_ptr, uint64_t bd) "use_buf_ptr=%d bd=0x%016"PRIx64

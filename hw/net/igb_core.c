@@ -2391,22 +2391,15 @@ e1000e_set_ics(E1000ECore *core, int index, uint32_t val)
     e1000e_set_interrupt_cause(core, val);
 }
 
-static void
-e1000e_set_icr(E1000ECore *core, int index, uint32_t val)
+static void igb_set_icr(E1000ECore *core, int index, uint32_t val)
 {
-    uint32_t icr = 0;
-    if ((core->mac[ICR] & E1000_ICR_ASSERTED) &&
-        (core->mac[CTRL_EXT] & E1000_CTRL_EXT_IAME)) {
-        trace_e1000e_irq_icr_process_iame();
-        e1000e_clear_ims_bits(core, core->mac[IAM]);
-    }
+    uint32_t icr = core->mac[ICR] & ~val;
 
-    icr = core->mac[ICR] & ~val;
-    /* Windows driver expects that the "receive overrun" bit and other
-     * ones to be cleared when the "Other" bit (#24) is cleared.
-     */
-    icr = (val & E1000_ICR_OTHER) ? (icr & ~E1000_ICR_OTHER_CAUSES) : icr;
-    trace_e1000e_irq_icr_write(val, core->mac[ICR], icr);
+    if (core->mac[ICR]) {
+        core->mac[EICR] &= IGB_EINT_OTHER_CAUSE;
+    }
+    trace_igb_irq_icr_write(val, core->mac[ICR], icr,
+        !!(core->mac[EICR] & IGB_EINT_OTHER_CAUSE));
     core->mac[ICR] = icr;
     e1000e_update_interrupt_state(core);
 }
@@ -2519,26 +2512,17 @@ e1000e_mac_eitr_read(E1000ECore *core, int index)
     return core->eitr_guest_value[index - EITR];
 }
 
-static uint32_t
-e1000e_mac_icr_read(E1000ECore *core, int index)
+static uint32_t igb_mac_icr_read(E1000ECore *core, int index)
 {
     uint32_t ret = core->mac[ICR];
-    trace_e1000e_irq_icr_read_entry(ret);
 
-    if (core->mac[IMS] == 0) {
-        trace_e1000e_irq_icr_clear_zero_ims();
-        core->mac[ICR] = 0;
-    }
+    trace_igb_irq_icr_read(ret);
 
-    if ((core->mac[ICR] & E1000_ICR_ASSERTED) &&
-        (core->mac[CTRL_EXT] & E1000_CTRL_EXT_IAME)) {
-        trace_e1000e_irq_icr_clear_iame();
-        core->mac[ICR] = 0;
-        trace_e1000e_irq_icr_process_iame();
-        e1000e_clear_ims_bits(core, core->mac[IAM]);
-    }
+    /* TODO: Clear-on-read can be enabled/disabled through a general
+       configuration register bit. */
+    core->mac[ICR] = 0;
+    core->mac[EICR] &= ~IGB_EINT_OTHER_CAUSE;
 
-    trace_e1000e_irq_icr_read_exit(core->mac[ICR]);
     e1000e_update_interrupt_state(core);
     return ret;
 }
@@ -2922,7 +2906,7 @@ static const readops e1000e_macreg_readops[] = {
     [BPRC]    = e1000e_mac_read_clr4,
     [MPTC]    = e1000e_mac_read_clr4,
     [IAC]     = e1000e_mac_read_clr4,
-    [ICR]     = e1000e_mac_icr_read,
+    [ICR]     = igb_mac_icr_read,
     [RDFH]    = E1000E_LOW_BITS_READ(13),
     [RDFHS]   = E1000E_LOW_BITS_READ(13),
     [RDFPC]   = E1000E_LOW_BITS_READ(13),
@@ -3085,7 +3069,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [RDT0]     = e1000e_set_rdt,
     [IMC]      = e1000e_set_imc,
     [IMS]      = igb_set_ims,
-    [ICR]      = e1000e_set_icr,
+    [ICR]      = igb_set_icr,
     [EECD]     = e1000e_set_eecd,
     [RCTL]     = e1000e_set_rx_control,
     [CTRL]     = igb_set_ctrl,
