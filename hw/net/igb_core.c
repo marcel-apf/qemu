@@ -46,6 +46,7 @@
 
 #include "e1000x_common.h"
 #include "igb_core.h"
+#include "igb_regs_new.h"
 
 #include "trace.h"
 
@@ -353,28 +354,6 @@ e1000e_intmgr_collect_delayed_causes(E1000ECore *core)
     e1000e_intrmgr_stop_delay_timers(core);
 
     return res;
-}
-
-static void
-e1000e_intrmgr_fire_all_timers(E1000ECore *core)
-{
-    int i;
-    uint32_t val = e1000e_intmgr_collect_delayed_causes(core);
-
-    trace_e1000e_irq_adding_delayed_causes(val, core->mac[ICR]);
-    core->mac[ICR] |= val;
-
-    if (core->itr.running) {
-        timer_del(core->itr.timer);
-        e1000e_intrmgr_on_throttling_timer(&core->itr);
-    }
-
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
-        if (core->eitr[i].running) {
-            timer_del(core->eitr[i].timer);
-            e1000e_intrmgr_on_msix_throttling_timer(&core->eitr[i]);
-        }
-    }
 }
 
 static void
@@ -2054,51 +2033,6 @@ e1000e_msix_notify(E1000ECore *core, uint32_t causes)
     }
 }
 
-static void
-e1000e_msix_clear_one(E1000ECore *core, uint32_t cause, uint32_t int_cfg)
-{
-    if (E1000_IVAR_ENTRY_VALID(int_cfg)) {
-        uint32_t vec = E1000_IVAR_ENTRY_VEC(int_cfg);
-        if (vec < E1000E_MSIX_VEC_NUM) {
-            trace_e1000e_irq_msix_pending_clearing(cause, int_cfg, vec);
-            msix_clr_pending(core->owner, vec);
-        } else {
-            trace_e1000e_wrn_msix_vec_wrong(cause, int_cfg);
-        }
-    } else {
-        trace_e1000e_wrn_msix_invalid(cause, int_cfg);
-    }
-}
-
-static void
-e1000e_msix_clear(E1000ECore *core, uint32_t causes)
-{
-    if (causes & E1000_ICR_RXQ0) {
-        e1000e_msix_clear_one(core, E1000_ICR_RXQ0,
-                              E1000_IVAR_RXQ0(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_RXQ1) {
-        e1000e_msix_clear_one(core, E1000_ICR_RXQ1,
-                              E1000_IVAR_RXQ1(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_TXQ0) {
-        e1000e_msix_clear_one(core, E1000_ICR_TXQ0,
-                              E1000_IVAR_TXQ0(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_TXQ1) {
-        e1000e_msix_clear_one(core, E1000_ICR_TXQ1,
-                              E1000_IVAR_TXQ1(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_OTHER) {
-        e1000e_msix_clear_one(core, E1000_ICR_OTHER,
-                              E1000_IVAR_OTHER(core->mac[IVAR]));
-    }
-}
-
 static inline void
 e1000e_fix_icr_asserted(E1000ECore *core)
 {
@@ -2485,39 +2419,21 @@ e1000e_set_imc(E1000ECore *core, int index, uint32_t val)
     e1000e_update_interrupt_state(core);
 }
 
-static void
-e1000e_set_ims(E1000ECore *core, int index, uint32_t val)
+static void igb_set_ims(E1000ECore *core, int index, uint32_t val)
 {
-    static const uint32_t ims_ext_mask =
-        E1000_IMS_RXQ0 | E1000_IMS_RXQ1 |
-        E1000_IMS_TXQ0 | E1000_IMS_TXQ1 |
-        E1000_IMS_OTHER;
-
     static const uint32_t ims_valid_mask =
-        E1000_IMS_TXDW      | E1000_IMS_TXQE    | E1000_IMS_LSC  |
-        E1000_IMS_RXDMT0    | E1000_IMS_RXO     | E1000_IMS_RXT0 |
-        E1000_IMS_MDAC      | E1000_IMS_TXD_LOW | E1000_IMS_SRPD |
-        E1000_IMS_ACK       | E1000_IMS_MNG     | E1000_IMS_RXQ0 |
-        E1000_IMS_RXQ1      | E1000_IMS_TXQ0    | E1000_IMS_TXQ1 |
-        E1000_IMS_OTHER;
+        IGB_INT_TXDW     | IGB_INT_LSC      | IGB_INT_RXDMT0   |
+        IGB_INT_MACSEC   | IGB_INT_RX0      | IGB_INT_RXDW     |
+        IGB_INT_VMMB     | IGB_INT_GPI_SDP0 | IGB_INT_GPI_SDP1 |
+        IGB_INT_GPI_SDP2 | IGB_INT_GPI_SDP3 | IGB_INT_PTRAP    |
+        IGB_INT_MNG      | IGB_INT_OMED     | IGB_INT_FER      |
+        IGB_INT_NFER     | IGB_INT_CSRTO    | IGB_INT_SCE      |
+        IGB_INT_SW_WD    | IGB_INT_OUTSYNC  | IGB_INT_TCP_TIMER;
 
     uint32_t valid_val = val & ims_valid_mask;
 
     trace_e1000e_irq_set_ims(val, core->mac[IMS], core->mac[IMS] | valid_val);
     core->mac[IMS] |= valid_val;
-
-    if ((valid_val & ims_ext_mask) &&
-        (core->mac[CTRL_EXT] & E1000_CTRL_EXT_PBA_CLR) &&
-        msix_enabled(core->owner)) {
-        e1000e_msix_clear(core, valid_val);
-    }
-
-    if ((valid_val == ims_valid_mask) &&
-        (core->mac[CTRL_EXT] & E1000_CTRL_EXT_INT_TIMERS_CLEAR_ENA)) {
-        trace_e1000e_irq_fire_all_timers(val);
-        e1000e_intrmgr_fire_all_timers(core);
-    }
-
     e1000e_update_interrupt_state(core);
 }
 
@@ -3168,7 +3084,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [RDH0]     = e1000e_set_16bit,
     [RDT0]     = e1000e_set_rdt,
     [IMC]      = e1000e_set_imc,
-    [IMS]      = e1000e_set_ims,
+    [IMS]      = igb_set_ims,
     [ICR]      = e1000e_set_icr,
     [EECD]     = e1000e_set_eecd,
     [RCTL]     = e1000e_set_rx_control,
