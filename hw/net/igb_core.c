@@ -3407,8 +3407,8 @@ e1000e_phy_reg_init[E1000E_PHY_PAGES][E1000E_PHY_PAGE_SIZE] = {
                        MII_SR_100X_HD_CAPS      |
                        MII_SR_100X_FD_CAPS,
 
-        [PHY_ID1]               = 0x141,
-        [PHY_ID2]               = E1000_PHY_ID2_82574x,
+        [PHY_ID1]               = 0x2a8,
+        [PHY_ID2]               = 0x391,
         [PHY_AUTONEG_ADV]       = 0xde1,
         [PHY_LP_ABILITY]        = 0x7e0,
         [PHY_AUTONEG_EXP]       = BIT(2),
@@ -3434,7 +3434,8 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [PBA]           =     0x00140014,
     [LEDCTL]        =  BIT(1) | BIT(8) | BIT(9) | BIT(15) | BIT(17) | BIT(18),
     [EXTCNF_CTRL]   = BIT(3),
-    [EEMNGCTL]      = BIT(31),
+    [EEMNGCTL]      = E1000_EEPROM_CFG_DONE | E1000_EEPROM_CFG_DONE_PORT_1 |
+                      BIT(31),
     [FLASHT]        = 0x2,
     [FLSWCTL]       = BIT(30) | BIT(31),
     [FLOL]          = BIT(0),
@@ -3466,7 +3467,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [PBS]           = 0x028,
     [MANC]          = E1000_MANC_DIS_IP_CHK_ARP,
     [FACTPS]        = E1000_FACTPS_LAN0_ON | 0x20000000,
-    [SWSM]          = 1,
+    [SWSM]          = 0,
     [RXCSUM]        = E1000_RXCSUM_IPOFLD | E1000_RXCSUM_TUOFLD,
     [ITR]           = E1000E_MIN_XITR,
     [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,

@@ -486,15 +486,6 @@ static void igb_reset(DeviceState *dev)
     trace_igb_cb_qdev_reset();
     pcie_sriov_pf_disable_vfs(d);
     igb_core_reset(&s->core);
-
-    /* On the igb, the SMBI bit is 0 at reset, while on the e1000e
-     * it is set to one, correct this:
-     */
-    s->core.mac[SWSM] = 0;
-
-    s->core.mac[EEMNGCTL] |= E1000_EEPROM_CFG_DONE | E1000_EEPROM_CFG_DONE_PORT_1;
-    s->core.phy[0][PHY_ID1] = 0x2a8;
-    s->core.phy[0][PHY_ID2] = 0x391;
 }
 
 static int igb_pre_save(void *opaque)
