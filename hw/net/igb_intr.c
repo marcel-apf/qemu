@@ -18,24 +18,6 @@ igb_set_eicr(E1000ECore *core, int index, uint32_t val)
     core->mac[EICR] &= ~val;
 }
 
-/* igb EICS (Extended Interrupt Cause Set, spec p.352, 502),
- * Set corresponding bits in EICR (Extended Interrupt Cause Register)
- */
-static void
-igb_set_eics(E1000ECore *core, int index, uint32_t val)
-{
-    uint32_t interrupting;
-    core->mac[EICR] |= (val & E1000_EICR_MASK);
-
-    interrupting = core->mac[EICR] & core->mac[EIMS];
-
-    /* TBD:
-     * - Loop through bits to trigger interrupts
-     * - Modify according to EAIM
-     */
-    (void)interrupting;
-}
-
 /* igb EIMS (Extended Interrupt Mask Set, spec p.352, 503)
  * Enables interrupts by writing 1's.
  */
