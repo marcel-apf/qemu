@@ -2914,6 +2914,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(GSCN_1),
     e1000e_getreg(FCAL),
     e1000e_getreg(FLSWCNT),
+    e1000e_getreg(GPIE),
 
     [TOTH]    = e1000e_mac_read_clr8,
     [GOTCH]   = e1000e_mac_read_clr8,
@@ -3081,6 +3082,7 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(EXTCNF_SIZE),
     e1000e_putreg(EEMNGCTL),
     e1000e_putreg(RA),
+    e1000e_putreg(GPIE),
 
     [TDH1]     = e1000e_set_16bit,
     [TDT1]     = e1000e_set_tdt,

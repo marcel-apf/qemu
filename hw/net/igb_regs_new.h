@@ -65,4 +65,11 @@
 #define IGB_EINT_TCP_TIMER      0x40000000 /* TCP Timer Expired */
 #define IGB_EINT_OTHER_CAUSE    0x80000000 /* Interrupt Cause Active */
 
+/* General Purpose Interrupt Enable */
+
+#define IGB_GPIE_NSICR          0x00000001 /* Non Selective Interrupt Clear On Read */
+#define IGB_GPIE_MULTIPLE_MSIX  0x00000010
+#define IGB_GPIE_EIAME          0x40000000 /* Extended Interrupt Auto Mask Enable */
+#define IGB_GPIE_PBA_SUPPORT    0x80000000
+
 #endif // HW_IGB_REGS_H

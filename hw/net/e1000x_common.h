@@ -100,8 +100,8 @@ enum {
     defreg(FCRTL_A), defreg(FCRTH_A),
 
     /* Additional regs used by IGB */
-    defreg(FWSM), defreg(SW_FW_SYNC), defreg(HTCBDPC),
-    defreg(EICR),   defreg(EICS),     defreg(EIMS),    defreg(EIAM),
+    defreg(FWSM),   defreg(SW_FW_SYNC), defreg(HTCBDPC), defreg(GPIE),
+    defreg(EICR),   defreg(EICS),       defreg(EIMS),    defreg(EIAM),
     defreg(EIMC),
     idefreg(IVAR),
 };

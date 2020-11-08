@@ -181,6 +181,7 @@
 #define E1000_FLOL     0x01050  /* FEEP Auto Load */
 
 /* IGB specific section: */
+#define E1000_GPIE     0x01514  /* General Purpose Interrupt Enable; RW */
 #define E1000_EICS     0x01520  /* Ext. Interrupt Cause Set - W0 */
 #define E1000_EIMS     0x01524  /* Ext. Interrupt Mask Set/Read - RW */
 #define E1000_EIMC     0x01528  /* Ext. Interrupt Mask Clear - WO */
