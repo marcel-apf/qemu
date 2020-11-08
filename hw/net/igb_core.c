@@ -2404,12 +2404,28 @@ static void igb_set_icr(E1000ECore *core, int index, uint32_t val)
     e1000e_update_interrupt_state(core);
 }
 
+static void write_iam_content_to_ims(E1000ECore *core)
+{
+    core->mac[IMS] = core->mac[IAM];
+
+    /* TODO: If GPIE.NSICR = 0, then the copy of IAM to IMS will occur only if
+       at least one bit is set in the IMS and there is a true interrupt as
+       reflected in ICR.INTA. */
+}
+
 static void
 e1000e_set_imc(E1000ECore *core, int index, uint32_t val)
 {
     trace_e1000e_irq_ims_clear_set_imc(val);
     e1000e_clear_ims_bits(core, val);
     e1000e_update_interrupt_state(core);
+}
+
+static void igb_set_iam(E1000ECore *core, int index, uint32_t val)
+{
+    trace_igb_irq_set_iam(val);
+    core->mac[IAM] = val;
+    write_iam_content_to_ims(core);
 }
 
 static void igb_set_ims(E1000ECore *core, int index, uint32_t val)
@@ -2474,6 +2490,13 @@ e1000e_mac_ims_read(E1000ECore *core, int index)
 {
     trace_e1000e_irq_read_ims(core->mac[IMS]);
     return core->mac[IMS];
+}
+
+static uint32_t igb_mac_iam_read(E1000ECore *core, int index)
+{
+    trace_igb_irq_read_iam(core->mac[IAM]);
+    write_iam_content_to_ims(core);
+    return core->mac[IAM];
 }
 
 #define E1000E_LOW_BITS_READ_FUNC(num)                      \
@@ -2919,6 +2942,7 @@ static const readops e1000e_macreg_readops[] = {
     /* 8.8.10: Reading the IMC register returns the value of the IMS register.
     */
     [IMC]     = e1000e_mac_ims_read,
+    [IAM]     = igb_mac_iam_read,
     [AIT]     = E1000E_LOW_BITS_READ(16),
     [TORH]    = e1000e_mac_read_clr8,
     [GORCH]   = e1000e_mac_read_clr8,
@@ -3068,6 +3092,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [RDH0]     = e1000e_set_16bit,
     [RDT0]     = e1000e_set_rdt,
     [IMC]      = e1000e_set_imc,
+    [IAM]      = igb_set_iam,
     [IMS]      = igb_set_ims,
     [ICR]      = igb_set_icr,
     [EECD]     = e1000e_set_eecd,
