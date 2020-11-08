@@ -47,6 +47,9 @@
 
 /* Extended Interrupts */
 
+#define IGB_EINT_MSIX_MASK      0x01FFFFFF /* Bits used in MSI-X mode */
+#define IGB_EINT_LEGACY_MASK    0x4000FFFF /* Bits used in non MSI-X mode */
+
 #define IGB_EINT_RXTXQ00        0x00000001 /* Receive/Transmit Queues */
 #define IGB_EINT_RXTXQ01        0x00000002
 #define IGB_EINT_RXTXQ02        0x00000004

@@ -2066,6 +2066,11 @@ e1000e_send_msi(E1000ECore *core, bool msix)
     }
 }
 
+static void igb_update_interrupt_state(E1000ECore *core)
+{
+
+}
+
 static void
 e1000e_update_interrupt_state(E1000ECore *core)
 {
@@ -2130,6 +2135,19 @@ e1000e_set_interrupt_cause(E1000ECore *core, uint32_t val)
 
 /* Temporary solution to make the changes clearer: */
 #include "igb_intr.c"
+
+static void igb_set_eics(E1000ECore *core, int index, uint32_t val)
+{
+    bool msix = !!(core->mac[GPIE] & IGB_GPIE_MULTIPLE_MSIX);
+
+    trace_igb_irq_write_eics(val, msix);
+
+    core->mac[EICS] |=
+        msix ? (val & IGB_EINT_MSIX_MASK) : (val & IGB_EINT_LEGACY_MASK);
+    core->mac[EICR] |= core->mac[EICS];
+
+    igb_update_interrupt_state(core);
+}
 
 static inline void
 e1000e_autoneg_timer(void *opaque)
