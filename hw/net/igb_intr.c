@@ -9,15 +9,6 @@
  * for now and ignore the alternative interpretation for legacy mode!
  */
 
-/* igb EICR (Extended Interrupt Cause, spec p.352, 502)
- * W1C (set to clear) semantics
- */
-static void
-igb_set_eicr(E1000ECore *core, int index, uint32_t val)
-{
-    core->mac[EICR] &= ~val;
-}
-
 #if 0
 /* Interrupt handling for the igb
  * - regs differ substantially from the e1000e.
