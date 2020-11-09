@@ -2161,6 +2161,18 @@ static void igb_set_eims(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
+static void igb_set_eimc(E1000ECore *core, int index, uint32_t val)
+{
+    bool msix = !!(core->mac[GPIE] & IGB_GPIE_MULTIPLE_MSIX);
+
+    /* Interrupts are disabled via a write to EIMC and reflected in EIMS. */
+    core->mac[EIMS] &=
+        msix ? ~(val & IGB_EINT_MSIX_MASK) : ~(val & IGB_EINT_LEGACY_MASK);
+
+    trace_igb_irq_write_eimc(val, core->mac[EIMS], msix);
+    igb_update_interrupt_state(core);
+}
+
 static inline void
 e1000e_autoneg_timer(void *opaque)
 {
