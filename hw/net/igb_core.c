@@ -2199,6 +2199,19 @@ static void igb_set_eiam(E1000ECore *core, int index, uint32_t val)
     trace_igb_irq_write_eiam(val, msix);
 }
 
+static void igb_set_eicr(E1000ECore *core, int index, uint32_t val)
+{
+    bool msix = !!(core->mac[GPIE] & IGB_GPIE_MULTIPLE_MSIX);
+
+    /* TODO: In IOV mode, only bit zero of this vector is available for the PF
+       function. */
+    core->mac[EICR] &=
+        msix ? ~(val & IGB_EINT_MSIX_MASK) : ~(val & IGB_EINT_LEGACY_MASK);
+
+    trace_igb_irq_write_eicr(val, msix);
+    igb_update_interrupt_state(core);
+}
+
 static inline void
 e1000e_autoneg_timer(void *opaque)
 {
