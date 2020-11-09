@@ -2173,6 +2173,20 @@ static void igb_set_eimc(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
+static void igb_set_eiac(E1000ECore *core, int index, uint32_t val)
+{
+    bool msix = !!(core->mac[GPIE] & IGB_GPIE_MULTIPLE_MSIX);
+
+    if (msix)
+    {
+        trace_igb_irq_write_eiac(val);
+
+        /* TODO: When using IOV, the bits that correspond to MSI-X vectors
+           that are assigned to a VF are read-only. */
+        core->mac[EIAC] |= (val & IGB_EINT_MSIX_MASK);
+    }
+}
+
 static inline void
 e1000e_autoneg_timer(void *opaque)
 {

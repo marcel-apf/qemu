@@ -25,13 +25,6 @@ igb_set_eiam(E1000ECore *core, int index, uint32_t val)
     core->mac[EIAM] |= (val & E1000_EICR_MASK);
 }
 
-/* igb EIAC (Extended Interrupt Auto Clear, spec p.504) */
-static void
-igb_set_eiac(E1000ECore *core, int index, uint32_t val)
-{
-    core->mac[EIAC] |= (val & E1000_EICR_MASK);
-}
-
 #if 0
 /* Interrupt handling for the igb
  * - regs differ substantially from the e1000e.
