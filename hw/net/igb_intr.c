@@ -18,15 +18,6 @@ igb_set_eicr(E1000ECore *core, int index, uint32_t val)
     core->mac[EICR] &= ~val;
 }
 
-/* igb EIMC (Extended Interrupt Mask Clear, spec p.352, 504)
- * Clear corresponding bit in EIMS
- */
-static void
-igb_set_eimc(E1000ECore *core, int index, uint32_t val)
-{
-    core->mac[EIMS] &= ~(val & E1000_EICR_MASK);
-}
-
 /* igb EIAM (Extended Interrupt Auto Mask Enable, spec p.352, 504) */
 static void
 igb_set_eiam(E1000ECore *core, int index, uint32_t val)
