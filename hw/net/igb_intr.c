@@ -18,22 +18,6 @@ igb_set_eicr(E1000ECore *core, int index, uint32_t val)
     core->mac[EICR] &= ~val;
 }
 
-/* igb EIMS (Extended Interrupt Mask Set, spec p.352, 503)
- * Enables interrupts by writing 1's.
- */
-static void
-igb_set_eims(E1000ECore *core, int index, uint32_t val)
-{
-    uint32_t eims = core->mac[EIMS];
-    uint32_t eims_new = eims | (val & E1000_EICR_MASK);
-    uint32_t triggered = eims_new & ~eims & core->mac[EICR];
-
-    if (triggered) {
-        core->mac[EIMS] |=  eims_new;
-        /* TBD: Loop through set bits and generate interrupt.. */
-    }
-}
-
 /* igb EIMC (Extended Interrupt Mask Clear, spec p.352, 504)
  * Clear corresponding bit in EIMS
  */
