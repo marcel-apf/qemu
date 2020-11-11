@@ -103,6 +103,7 @@ enum {
     defreg(FWSM),   defreg(SW_FW_SYNC), defreg(HTCBDPC), defreg(GPIE),
     defreg(EICR),   defreg(EICS),       defreg(EIMS),    defreg(EIAM),
     defreg(EIMC),   defreg(TXPBS),      defreg(TCTL_EXT),
+    defreg(DTXCTL),
     idefreg(IVAR),
 };
 
