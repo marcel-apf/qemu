@@ -2907,6 +2907,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TDH),
     e1000e_getreg(LEDCTL),
     e1000e_getreg(TCTL),
+    e1000e_getreg(TCTL_EXT),
     e1000e_getreg(TDBAL),
     e1000e_getreg(TDLEN),
     e1000e_getreg(TDH1),
@@ -3084,6 +3085,7 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(RDBAH0),
     e1000e_putreg(LEDCTL),
     e1000e_putreg(TCTL),
+    e1000e_putreg(TCTL_EXT),
     e1000e_putreg(FCAL),
     e1000e_putreg(FCRUC),
     e1000e_putreg(AIT),
@@ -3472,6 +3474,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,
     [TXPBS]         = 0x28,
     [TCTL]          = (0x1 << 3) | (0xF << 4) | (0x40 << 12) | (0x1 << 26) | (0xA << 28),
+    [TCTL_EXT]      = 0x40 | (0x42 << 10),
 };
 
 void igb_core_reset(E1000ECore *core)
