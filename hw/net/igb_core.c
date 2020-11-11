@@ -2434,23 +2434,6 @@ e1000e_set_dbal(E1000ECore *core, int index, uint32_t val)
 }
 
 static void
-e1000e_set_tctl(E1000ECore *core, int index, uint32_t val)
-{
-    E1000E_TxRing txr;
-    core->mac[index] = val;
-
-    if (core->mac[TARC0] & E1000_TARC_ENABLE) {
-        e1000e_tx_ring_init(core, &txr, 0);
-        e1000e_start_xmit(core, &txr);
-    }
-
-    if (core->mac[TARC1] & E1000_TARC_ENABLE) {
-        e1000e_tx_ring_init(core, &txr, 1);
-        e1000e_start_xmit(core, &txr);
-    }
-}
-
-static void
 e1000e_set_tdt(E1000ECore *core, int index, uint32_t val)
 {
     E1000E_TxRing txr;
@@ -3100,6 +3083,7 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(TXDCTL),
     e1000e_putreg(RDBAH0),
     e1000e_putreg(LEDCTL),
+    e1000e_putreg(TCTL),
     e1000e_putreg(FCAL),
     e1000e_putreg(FCRUC),
     e1000e_putreg(AIT),
@@ -3174,7 +3158,6 @@ static const writeops e1000e_macreg_writeops[] = {
 
     [TDH1]     = e1000e_set_16bit,
     [TDT1]     = e1000e_set_tdt,
-    [TCTL]     = e1000e_set_tctl,
     [TDT]      = e1000e_set_tdt,
     [MDIC]     = e1000e_set_mdic,
     [ICS]      = e1000e_set_ics,
@@ -3488,6 +3471,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [ITR]           = E1000E_MIN_XITR,
     [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,
     [TXPBS]         = 0x28,
+    [TCTL]          = (0x1 << 3) | (0xF << 4) | (0x40 << 12) | (0x1 << 26) | (0xA << 28),
 };
 
 void igb_core_reset(E1000ECore *core)
