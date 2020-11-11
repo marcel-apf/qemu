@@ -2622,12 +2622,17 @@ static uint32_t igb_mac_icr_read(E1000ECore *core, int index)
 
     trace_igb_irq_icr_read(ret);
 
-    /* TODO: Clear-on-read can be enabled/disabled through a general
-       configuration register bit. */
-    core->mac[ICR] = 0;
-    core->mac[EICR] &= ~IGB_EINT_OTHER_CAUSE;
+    if (core->mac[GPIE] & IGB_GPIE_NSICR) {
+        trace_igb_irq_icr_clear_gpie_nsicr();
+        core->mac[ICR] = 0;
+    } else {
+        if (core->mac[IMS] == 0) {
+            trace_igb_irq_icr_clear_zero_ims();
+            core->mac[ICR] = 0;
+        }
+    }
 
-    e1000e_update_interrupt_state(core);
+    igb_update_interrupt_state(core);
     return ret;
 }
 
