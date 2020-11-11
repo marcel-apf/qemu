@@ -3001,6 +3001,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(FCAL),
     e1000e_getreg(FLSWCNT),
     e1000e_getreg(GPIE),
+    e1000e_getreg(TXPBS),
 
     [TOTH]    = e1000e_mac_read_clr8,
     [GOTCH]   = e1000e_mac_read_clr8,
@@ -3169,6 +3170,7 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(EEMNGCTL),
     e1000e_putreg(RA),
     e1000e_putreg(GPIE),
+    e1000e_putreg(TXPBS),
 
     [TDH1]     = e1000e_set_16bit,
     [TDT1]     = e1000e_set_tdt,
@@ -3485,6 +3487,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [RXCSUM]        = E1000_RXCSUM_IPOFLD | E1000_RXCSUM_TUOFLD,
     [ITR]           = E1000E_MIN_XITR,
     [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,
+    [TXPBS]         = 0x28,
 };
 
 void igb_core_reset(E1000ECore *core)

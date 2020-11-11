@@ -190,6 +190,8 @@
 #define IGB_IVAR       0x01700  /* Interrupt Vector Allocation Register (1st) - RW */
 #define IGB_IVAR_MISC  0x01740  /* Interrupt Vector Allocation Register (last) - RW */
 
+#define E1000_TXPBS    0x03404  /* Tx Packet Buffer Size - RW */
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */
