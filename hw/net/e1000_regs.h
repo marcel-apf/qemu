@@ -244,6 +244,23 @@
 #define E1000_TDH14 0xe390
 #define E1000_TDH15 0xe3d0
 
+#define E1000_TDT0  0x3818  /* Transmit Descriptor Tail - RW */
+//#define E1000_TDT1  0x3918
+#define E1000_TDT2  0x3a18
+#define E1000_TDT3  0x3b18
+#define E1000_TDT4  0xe118
+#define E1000_TDT5  0xe158
+#define E1000_TDT6  0xe198
+#define E1000_TDT7  0xe1d8
+#define E1000_TDT8  0xe218
+#define E1000_TDT9  0xe258
+#define E1000_TDT10 0xe298
+#define E1000_TDT11 0xe2d8
+#define E1000_TDT12 0xe318
+#define E1000_TDT13 0xe358
+#define E1000_TDT14 0xe398
+#define E1000_TDT15 0xe3d8
+
 #define E1000_TDLEN0    0x3808  /* Transmit Descriptor Ring Length - RW */
 //#define E1000_TDLEN1    0x3908
 #define E1000_TDLEN2    0x3a08

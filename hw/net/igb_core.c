@@ -2453,6 +2453,11 @@ e1000e_set_tdt(E1000ECore *core, int index, uint32_t val)
     }
 }
 
+static void igb_set_tdt(E1000ECore *core, int index, uint32_t val)
+{
+    e1000e_set_tdt(core, index, val & IGB_TDT_MASK);
+}
+
 static void
 e1000e_set_ics(E1000ECore *core, int index, uint32_t val)
 {
@@ -2904,7 +2909,22 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TIMADJL),
     e1000e_getreg(TXDCTL),
     e1000e_getreg(RDH0),
+    e1000e_getreg(TDT0),
     e1000e_getreg(TDT1),
+    e1000e_getreg(TDT2),
+    e1000e_getreg(TDT3),
+    e1000e_getreg(TDT4),
+    e1000e_getreg(TDT5),
+    e1000e_getreg(TDT6),
+    e1000e_getreg(TDT7),
+    e1000e_getreg(TDT8),
+    e1000e_getreg(TDT9),
+    e1000e_getreg(TDT10),
+    e1000e_getreg(TDT11),
+    e1000e_getreg(TDT12),
+    e1000e_getreg(TDT13),
+    e1000e_getreg(TDT14),
+    e1000e_getreg(TDT15),
     e1000e_getreg(TNCRS),
     e1000e_getreg(RJC),
     e1000e_getreg(IAM),
@@ -2993,7 +3013,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(FCRTV),
     e1000e_getreg(TXDCTL1),
     e1000e_getreg(RCTL),
-    e1000e_getreg(TDT),
     e1000e_getreg(MDIC),
     e1000e_getreg(FCRUC),
     e1000e_getreg(VET),
@@ -3251,8 +3270,22 @@ static const writeops e1000e_macreg_writeops[] = {
     [TDH13]    = e1000e_set_16bit,
     [TDH14]    = e1000e_set_16bit,
     [TDH15]    = e1000e_set_16bit,
-    [TDT1]     = e1000e_set_tdt,
-    [TDT]      = e1000e_set_tdt,
+    [TDT0]     = igb_set_tdt,
+    [TDT1]     = igb_set_tdt,
+    [TDT2]     = igb_set_tdt,
+    [TDT3]     = igb_set_tdt,
+    [TDT4]     = igb_set_tdt,
+    [TDT5]     = igb_set_tdt,
+    [TDT6]     = igb_set_tdt,
+    [TDT7]     = igb_set_tdt,
+    [TDT8]     = igb_set_tdt,
+    [TDT9]     = igb_set_tdt,
+    [TDT10]    = igb_set_tdt,
+    [TDT11]    = igb_set_tdt,
+    [TDT12]    = igb_set_tdt,
+    [TDT13]    = igb_set_tdt,
+    [TDT14]    = igb_set_tdt,
+    [TDT15]    = igb_set_tdt,
     [MDIC]     = e1000e_set_mdic,
     [ICS]      = e1000e_set_ics,
     [RDH0]     = e1000e_set_16bit,
