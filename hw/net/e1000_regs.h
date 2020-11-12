@@ -210,6 +210,23 @@
 #define E1000_TDBAL14   0xe380
 #define E1000_TDBAL15   0xe3c0
 
+#define E1000_TDBAH0    0x3804  /* Transmit Descriptor Base Address High - RW */
+//#define E1000_TDBAH1    0x3904
+#define E1000_TDBAH2    0x3a04
+#define E1000_TDBAH3    0x3b04
+#define E1000_TDBAH4    0xe104
+#define E1000_TDBAH5    0xe144
+#define E1000_TDBAH6    0xe184
+#define E1000_TDBAH7    0xe1c4
+#define E1000_TDBAH8    0xe204
+#define E1000_TDBAH9    0xe244
+#define E1000_TDBAH10   0xe284
+#define E1000_TDBAH11   0xe2c4
+#define E1000_TDBAH12   0xe304
+#define E1000_TDBAH13   0xe344
+#define E1000_TDBAH14   0xe384
+#define E1000_TDBAH15   0xe3c4
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */
