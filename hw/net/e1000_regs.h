@@ -227,6 +227,23 @@
 #define E1000_TDBAH14   0xe384
 #define E1000_TDBAH15   0xe3c4
 
+#define E1000_TDH0  0x3810  /* Transmit Descriptor Head - RO */
+//#define E1000_TDH1  0x3910
+#define E1000_TDH2  0x3a10
+#define E1000_TDH3  0x3b10
+#define E1000_TDH4  0xe110
+#define E1000_TDH5  0xe150
+#define E1000_TDH6  0xe190
+#define E1000_TDH7  0xe1d0
+#define E1000_TDH8  0xe210
+#define E1000_TDH9  0xe250
+#define E1000_TDH10 0xe290
+#define E1000_TDH11 0xe2d0
+#define E1000_TDH12 0xe310
+#define E1000_TDH13 0xe350
+#define E1000_TDH14 0xe390
+#define E1000_TDH15 0xe3d0
+
 #define E1000_TDLEN0    0x3808  /* Transmit Descriptor Ring Length - RW */
 //#define E1000_TDLEN1    0x3908
 #define E1000_TDLEN2    0x3a08
