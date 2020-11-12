@@ -278,6 +278,23 @@
 #define E1000_TDLEN14   0xe388
 #define E1000_TDLEN15   0xe3c8
 
+#define E1000_TXDCTL0   0x3828  /* Transmit Descriptor Control - RW */
+//#define E1000_TXDCTL1   0x3928
+#define E1000_TXDCTL2   0x3a28
+#define E1000_TXDCTL3   0x3b28
+#define E1000_TXDCTL4   0xe128
+#define E1000_TXDCTL5   0xe168
+#define E1000_TXDCTL6   0xe1a8
+#define E1000_TXDCTL7   0xe1e8
+#define E1000_TXDCTL8   0xe228
+#define E1000_TXDCTL9   0xe268
+#define E1000_TXDCTL10  0xe2a8
+#define E1000_TXDCTL11  0xe2e8
+#define E1000_TXDCTL12  0xe328
+#define E1000_TXDCTL13  0xe368
+#define E1000_TXDCTL14  0xe3a8
+#define E1000_TXDCTL15  0xe3e8
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */
