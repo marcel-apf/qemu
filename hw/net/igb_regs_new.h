@@ -78,5 +78,6 @@
 /* Transmit & Receive */
 
 #define IGB_XDBAL_MASK  (~(BIT(7) - 1)) /* TDBAL and RDBAL Registers Mask */
+#define IGB_TDT_MASK    0xFFFF          /* Transmit Descriptor Tail Mask */
 
 #endif // HW_IGB_REGS_H
