@@ -2427,6 +2427,11 @@ e1000e_set_dlen(E1000ECore *core, int index, uint32_t val)
     core->mac[index] = val & E1000_XDLEN_MASK;
 }
 
+static void igb_set_dbal(E1000ECore *core, int index, uint32_t val)
+{
+    core->mac[index] = val & IGB_XDBAL_MASK;
+}
+
 static void
 e1000e_set_dbal(E1000ECore *core, int index, uint32_t val)
 {
@@ -2857,7 +2862,22 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TOTL),
     e1000e_getreg(RDT0),
     e1000e_getreg(RDBAH0),
+    e1000e_getreg(TDBAL0),
     e1000e_getreg(TDBAL1),
+    e1000e_getreg(TDBAL2),
+    e1000e_getreg(TDBAL3),
+    e1000e_getreg(TDBAL4),
+    e1000e_getreg(TDBAL5),
+    e1000e_getreg(TDBAL6),
+    e1000e_getreg(TDBAL7),
+    e1000e_getreg(TDBAL8),
+    e1000e_getreg(TDBAL9),
+    e1000e_getreg(TDBAL10),
+    e1000e_getreg(TDBAL11),
+    e1000e_getreg(TDBAL12),
+    e1000e_getreg(TDBAL13),
+    e1000e_getreg(TDBAL14),
+    e1000e_getreg(TDBAL15),
     e1000e_getreg(RDLEN0),
     e1000e_getreg(RDH1),
     e1000e_getreg(LATECOL),
@@ -2909,7 +2929,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TCTL),
     e1000e_getreg(TCTL_EXT),
     e1000e_getreg(DTXCTL),
-    e1000e_getreg(TDBAL),
     e1000e_getreg(TDLEN),
     e1000e_getreg(TDH1),
     e1000e_getreg(RADV),
@@ -3190,8 +3209,22 @@ static const writeops e1000e_macreg_writeops[] = {
     [TDLEN]    = e1000e_set_dlen,
     [RDLEN0]   = e1000e_set_dlen,
     [RDLEN1]   = e1000e_set_dlen,
-    [TDBAL]    = e1000e_set_dbal,
-    [TDBAL1]   = e1000e_set_dbal,
+    [TDBAL0]   = igb_set_dbal,
+    [TDBAL1]   = igb_set_dbal,
+    [TDBAL2]   = igb_set_dbal,
+    [TDBAL3]   = igb_set_dbal,
+    [TDBAL4]   = igb_set_dbal,
+    [TDBAL5]   = igb_set_dbal,
+    [TDBAL6]   = igb_set_dbal,
+    [TDBAL7]   = igb_set_dbal,
+    [TDBAL8]   = igb_set_dbal,
+    [TDBAL9]   = igb_set_dbal,
+    [TDBAL10]  = igb_set_dbal,
+    [TDBAL11]  = igb_set_dbal,
+    [TDBAL12]  = igb_set_dbal,
+    [TDBAL13]  = igb_set_dbal,
+    [TDBAL14]  = igb_set_dbal,
+    [TDBAL15]  = igb_set_dbal,
     [RDBAL0]   = e1000e_set_dbal,
     [RDBAL1]   = e1000e_set_dbal,
     [RDH1]     = e1000e_set_16bit,

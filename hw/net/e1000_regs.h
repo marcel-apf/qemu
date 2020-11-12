@@ -193,6 +193,23 @@
 #define E1000_TXPBS    0x03404  /* Tx Packet Buffer Size - RW */
 #define E1000_DTXCTL   0x03590  /* DMA TX Control - RW */
 
+#define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
+//#define E1000_TDBAL1    0x3900
+#define E1000_TDBAL2    0x3a00
+#define E1000_TDBAL3    0x3b00
+#define E1000_TDBAL4    0xe100
+#define E1000_TDBAL5    0xe140
+#define E1000_TDBAL6    0xe180
+#define E1000_TDBAL7    0xe1c0
+#define E1000_TDBAL8    0xe200
+#define E1000_TDBAL9    0xe240
+#define E1000_TDBAL10   0xe280
+#define E1000_TDBAL11   0xe2c0
+#define E1000_TDBAL12   0xe300
+#define E1000_TDBAL13   0xe340
+#define E1000_TDBAL14   0xe380
+#define E1000_TDBAL15   0xe3c0
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */

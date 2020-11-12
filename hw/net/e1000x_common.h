@@ -104,6 +104,12 @@ enum {
     defreg(EICR),   defreg(EICS),       defreg(EIMS),    defreg(EIAM),
     defreg(EIMC),   defreg(TXPBS),      defreg(TCTL_EXT),
     defreg(DTXCTL),
+
+    defreg(TDBAL0),  /*defreg(TDBAL1),*/  defreg(TDBAL2),  defreg(TDBAL3),
+    defreg(TDBAL4),  defreg(TDBAL5),  defreg(TDBAL6),  defreg(TDBAL7),
+    defreg(TDBAL8),  defreg(TDBAL9),  defreg(TDBAL10), defreg(TDBAL11),
+    defreg(TDBAL12), defreg(TDBAL13), defreg(TDBAL14), defreg(TDBAL15),
+
     idefreg(IVAR),
 };
 
