@@ -115,6 +115,11 @@ enum {
     defreg(TDBAH8),  defreg(TDBAH9),  defreg(TDBAH10), defreg(TDBAH11),
     defreg(TDBAH12), defreg(TDBAH13), defreg(TDBAH14), defreg(TDBAH15),
 
+    defreg(TDLEN0),  /*defreg(TDLEN1),*/  defreg(TDLEN2),  defreg(TDLEN3),
+    defreg(TDLEN4),  defreg(TDLEN5),  defreg(TDLEN6),  defreg(TDLEN7),
+    defreg(TDLEN8),  defreg(TDLEN9),  defreg(TDLEN10), defreg(TDLEN11),
+    defreg(TDLEN12), defreg(TDLEN13), defreg(TDLEN14), defreg(TDLEN15),
+
     idefreg(IVAR),
 };
 

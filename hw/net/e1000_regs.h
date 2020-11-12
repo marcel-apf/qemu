@@ -227,6 +227,23 @@
 #define E1000_TDBAH14   0xe384
 #define E1000_TDBAH15   0xe3c4
 
+#define E1000_TDLEN0    0x3808  /* Transmit Descriptor Ring Length - RW */
+//#define E1000_TDLEN1    0x3908
+#define E1000_TDLEN2    0x3a08
+#define E1000_TDLEN3    0x3b08
+#define E1000_TDLEN4    0xe108
+#define E1000_TDLEN5    0xe148
+#define E1000_TDLEN6    0xe188
+#define E1000_TDLEN7    0xe1c8
+#define E1000_TDLEN8    0xe208
+#define E1000_TDLEN9    0xe248
+#define E1000_TDLEN10   0xe288
+#define E1000_TDLEN11   0xe2c8
+#define E1000_TDLEN12   0xe308
+#define E1000_TDLEN13   0xe348
+#define E1000_TDLEN14   0xe388
+#define E1000_TDLEN15   0xe3c8
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */
