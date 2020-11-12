@@ -75,4 +75,8 @@
 #define IGB_GPIE_EIAME          0x40000000 /* Extended Interrupt Auto Mask Enable */
 #define IGB_GPIE_PBA_SUPPORT    0x80000000
 
+/* Transmit & Receive */
+
+#define IGB_XDBAL_MASK  (~(BIT(7) - 1)) /* TDBAL and RDBAL Registers Mask */
+
 #endif // HW_IGB_REGS_H
