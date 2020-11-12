@@ -130,6 +130,11 @@ enum {
     defreg(TDT8),  defreg(TDT9),  defreg(TDT10), defreg(TDT11),
     defreg(TDT12), defreg(TDT13), defreg(TDT14), defreg(TDT15),
 
+    defreg(TXDCTL0),  /*defreg(TXDCTL1),*/  defreg(TXDCTL2),  defreg(TXDCTL3),
+    defreg(TXDCTL4),  defreg(TXDCTL5),  defreg(TXDCTL6),  defreg(TXDCTL7),
+    defreg(TXDCTL8),  defreg(TXDCTL9),  defreg(TXDCTL10), defreg(TXDCTL11),
+    defreg(TXDCTL12), defreg(TXDCTL13), defreg(TXDCTL14), defreg(TXDCTL15),
+
     idefreg(IVAR),
 };
 
