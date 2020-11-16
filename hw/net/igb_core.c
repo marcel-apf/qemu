@@ -2183,7 +2183,7 @@ static void igb_set_eiac(E1000ECore *core, int index, uint32_t val)
 
         /* TODO: When using IOV, the bits that correspond to MSI-X vectors
            that are assigned to a VF are read-only. */
-        core->mac[EIAC] |= (val & IGB_EINT_MSIX_MASK);
+        core->mac[I_EIAC] |= (val & IGB_EINT_MSIX_MASK);
     }
 }
 
@@ -2892,7 +2892,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(GORCL),
     e1000e_getreg(MGTPRC),
     e1000e_getreg(EERD),
-    e1000e_getreg(EIAC),
+    e1000e_getreg(I_EIAC),
     e1000e_getreg(PSRCTL),
     e1000e_getreg(MANC2H),
     e1000e_getreg(RXCSUM),
@@ -3214,7 +3214,6 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(TDBAH15),
     e1000e_putreg(TIMINCA),
     e1000e_putreg(IAM),
-    e1000e_putreg(EIAC),
     e1000e_putreg(IVAR),
     e1000e_putreg(TARC0),
     e1000e_putreg(TARC1),
@@ -3415,7 +3414,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [SW_FW_SYNC] = e1000e_mac_writereg,
     [EICR] = igb_set_eicr,
     [EICS] = igb_set_eics,
-    [EIAC] = igb_set_eiac,
+    [I_EIAC] = igb_set_eiac,
     [EIAM] = igb_set_eiam,
     [EIMC] = igb_set_eimc,
     [EIMS] = igb_set_eims,
