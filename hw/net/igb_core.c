@@ -145,29 +145,6 @@ e1000e_intrmgr_on_timer(void *opaque)
 }
 
 static void
-e1000e_intrmgr_on_throttling_timer(void *opaque)
-{
-    E1000IntrDelayTimer *timer = opaque;
-
-    assert(!msix_enabled(timer->core->owner));
-
-    timer->running = false;
-
-    if (!timer->core->itr_intr_pending) {
-        trace_e1000e_irq_throttling_no_pending_interrupts();
-        return;
-    }
-
-    if (msi_enabled(timer->core->owner)) {
-        trace_e1000e_irq_msi_notify_postponed();
-        e1000e_set_interrupt_cause(timer->core, 0);
-    } else {
-        trace_e1000e_irq_legacy_notify_postponed();
-        e1000e_set_interrupt_cause(timer->core, 0);
-    }
-}
-
-static void
 e1000e_intrmgr_on_msix_throttling_timer(void *opaque)
 {
     E1000IntrDelayTimer *timer = opaque;
@@ -209,10 +186,6 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
     core->tadv.core = core;
     core->tidv.core = core;
 
-    core->itr.core = core;
-    core->itr.delay_reg = ITR;
-    core->itr.delay_resolution_ns = E1000_INTR_THROTTLING_NS_RES;
-
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         core->eitr[i].core = core;
         core->eitr[i].delay_reg = EITR + i;
@@ -234,10 +207,6 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
         timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->tadv);
     core->tidv.timer =
         timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->tidv);
-
-    core->itr.timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
-                                   e1000e_intrmgr_on_throttling_timer,
-                                   &core->itr);
 
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         core->eitr[i].timer =
@@ -367,8 +336,6 @@ e1000e_intrmgr_resume(E1000ECore *core)
     e1000e_intmgr_timer_resume(&core->tidv);
     e1000e_intmgr_timer_resume(&core->tadv);
 
-    e1000e_intmgr_timer_resume(&core->itr);
-
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         e1000e_intmgr_timer_resume(&core->eitr[i]);
     }
@@ -385,8 +352,6 @@ e1000e_intrmgr_pause(E1000ECore *core)
     e1000e_intmgr_timer_pause(&core->tidv);
     e1000e_intmgr_timer_pause(&core->tadv);
 
-    e1000e_intmgr_timer_pause(&core->itr);
-
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         e1000e_intmgr_timer_pause(&core->eitr[i]);
     }
@@ -400,8 +365,6 @@ e1000e_intrmgr_reset(E1000ECore *core)
     core->delayed_causes = 0;
 
     e1000e_intrmgr_stop_delay_timers(core);
-
-    e1000e_intrmgr_stop_timer(&core->itr);
 
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         e1000e_intrmgr_stop_timer(&core->eitr[i]);
@@ -424,9 +387,6 @@ e1000e_intrmgr_pci_unint(E1000ECore *core)
     timer_free(core->tadv.timer);
     timer_del(core->tidv.timer);
     timer_free(core->tidv.timer);
-
-    timer_del(core->itr.timer);
-    timer_free(core->itr.timer);
 
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         timer_del(core->eitr[i].timer);
@@ -1970,12 +1930,6 @@ e1000e_postpone_interrupt(bool *interrupt_pending,
 }
 
 static inline bool
-e1000e_itr_should_postpone(E1000ECore *core)
-{
-    return e1000e_postpone_interrupt(&core->itr_intr_pending, &core->itr);
-}
-
-static inline bool
 e1000e_eitr_should_postpone(E1000ECore *core, int idx)
 {
     return e1000e_postpone_interrupt(&core->eitr_intr_pending[idx],
@@ -2073,7 +2027,7 @@ e1000e_send_msi(E1000ECore *core, bool msix)
     if (msix) {
         e1000e_msix_notify(core, causes);
     } else {
-        if (!e1000e_itr_should_postpone(core)) {
+        if (!e1000e_eitr_should_postpone(core, 0)) {
             trace_e1000e_irq_msi_notify(causes);
             msi_notify(core->owner, 0);
         }
@@ -2125,7 +2079,7 @@ e1000e_update_interrupt_state(E1000ECore *core)
         }
     } else {
         if (interrupts_pending) {
-            if (!e1000e_itr_should_postpone(core)) {
+            if (!e1000e_eitr_should_postpone(core, 0)) {
                 e1000e_raise_legacy_irq(core);
             }
         } else {
@@ -2602,12 +2556,6 @@ e1000e_mac_swsm_read(E1000ECore *core, int index)
 }
 
 static uint32_t
-e1000e_mac_itr_read(E1000ECore *core, int index)
-{
-    return core->itr_guest_value;
-}
-
-static uint32_t
 e1000e_mac_eitr_read(E1000ECore *core, int index)
 {
     return core->eitr_guest_value[index - EITR];
@@ -2789,17 +2737,6 @@ static void
 e1000e_set_rxdctl(E1000ECore *core, int index, uint32_t val)
 {
     core->mac[RXDCTL] = core->mac[RXDCTL1] = val;
-}
-
-static void
-e1000e_set_itr(E1000ECore *core, int index, uint32_t val)
-{
-    uint32_t interval = val & 0xffff;
-
-    trace_e1000e_irq_itr_set(val);
-
-    core->itr_guest_value = interval;
-    core->mac[index] = MAX(interval, E1000E_MIN_XITR);
 }
 
 static void
@@ -3129,7 +3066,6 @@ static const readops e1000e_macreg_readops[] = {
     [MPRC]    = e1000e_mac_read_clr4,
     [BPTC]    = e1000e_mac_read_clr4,
     [TSCTC]   = e1000e_mac_read_clr4,
-    [ITR]     = e1000e_mac_itr_read,
     [RDFT]    = E1000E_LOW_BITS_READ(13),
     [RDFTS]   = E1000E_LOW_BITS_READ(13),
     [TDFPC]   = E1000E_LOW_BITS_READ(13),
@@ -3331,7 +3267,6 @@ static const writeops e1000e_macreg_writeops[] = {
     [RDTR]     = e1000e_set_rdtr,
     [RADV]     = e1000e_set_16bit,
     [TADV]     = e1000e_set_16bit,
-    [ITR]      = e1000e_set_itr,
     [EERD]     = e1000e_set_eerd,
     [GCR]      = e1000e_set_gcr,
     [PSRCTL]   = e1000e_set_psrctl,
@@ -3653,7 +3588,6 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [FACTPS]        = E1000_FACTPS_LAN0_ON | 0x20000000,
     [SWSM]          = 0,
     [RXCSUM]        = E1000_RXCSUM_IPOFLD | E1000_RXCSUM_TUOFLD,
-    [ITR]           = E1000E_MIN_XITR,
     [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,
     [TXPBS]         = 0x28,
     [TCTL]          = (0x1 << 3) | (0xF << 4) | (0x40 << 12) | (0x1 << 26) | (0xA << 28),
