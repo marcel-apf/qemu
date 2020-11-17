@@ -47,7 +47,7 @@
  * Just set some conservative values here to work with for now
  */
 #define IGB_MSIX_VEC_NUM     (5)
-#define IGB_NUM_QUEUES       (2)
+#define IGB_NUM_QUEUES       (16)
 
 typedef struct E1000Core E1000ECore;
 
