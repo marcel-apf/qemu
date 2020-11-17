@@ -857,18 +857,32 @@ e1000e_mq_queue_idx(int base_reg_idx, int reg_idx)
     return (reg_idx - base_reg_idx) / (0x100 >> 2);
 }
 
-static inline void
-e1000e_tx_ring_init(E1000ECore *core, E1000E_TxRing *txr, int idx)
+static inline void igb_tx_ring_init(E1000ECore *core,
+    E1000E_TxRing *txr, int idx)
 {
-    static const E1000E_RingInfo i[E1000E_NUM_QUEUES] = {
-        { TDBAH,  TDBAL,  TDLEN,  TDH,  TDT, 0 },
-        { TDBAH1, TDBAL1, TDLEN1, TDH1, TDT1, 1 }
+    static const E1000E_RingInfo i[IGB_NUM_QUEUES] = {
+        { TDBAH0, TDBAL0, TDLEN0, TDH0, TDT0, 0 },
+        { TDBAH1, TDBAL1, TDLEN1, TDH1, TDT1, 1 },
+        { TDBAH2, TDBAL2, TDLEN2, TDH2, TDT2, 2 },
+        { TDBAH3, TDBAL3, TDLEN3, TDH3, TDT3, 3 },
+        { TDBAH4, TDBAL4, TDLEN4, TDH4, TDT4, 4 },
+        { TDBAH5, TDBAL5, TDLEN5, TDH5, TDT5, 5 },
+        { TDBAH6, TDBAL6, TDLEN6, TDH6, TDT6, 6 },
+        { TDBAH7, TDBAL7, TDLEN7, TDH7, TDT7, 7 },
+        { TDBAH8, TDBAL8, TDLEN8, TDH8, TDT8, 8 },
+        { TDBAH9, TDBAL9, TDLEN9, TDH9, TDT9, 9 },
+        { TDBAH10, TDBAL10, TDLEN10, TDH10, TDT10, 10 },
+        { TDBAH11, TDBAL11, TDLEN11, TDH11, TDT11, 11 },
+        { TDBAH12, TDBAL12, TDLEN12, TDH12, TDT12, 12 },
+        { TDBAH13, TDBAL13, TDLEN13, TDH13, TDT13, 13 },
+        { TDBAH14, TDBAL14, TDLEN14, TDH14, TDT14, 14 },
+        { TDBAH15, TDBAL15, TDLEN15, TDH15, TDT15, 15 }
     };
 
     assert(idx < ARRAY_SIZE(i));
 
-    txr->i     = &i[idx];
-    txr->tx    = &core->tx[idx];
+    txr->i = &i[idx];
+    txr->tx = &core->tx[idx];
 }
 
 typedef struct E1000E_RxRing_st {
@@ -2438,24 +2452,14 @@ e1000e_set_dbal(E1000ECore *core, int index, uint32_t val)
     core->mac[index] = val & E1000_XDBAL_MASK;
 }
 
-static void
-e1000e_set_tdt(E1000ECore *core, int index, uint32_t val)
-{
-    E1000E_TxRing txr;
-    int qidx = e1000e_mq_queue_idx(TDT, index);
-    uint32_t tarc_reg = (qidx == 0) ? TARC0 : TARC1;
-
-    core->mac[index] = val & 0xffff;
-
-    if (core->mac[tarc_reg] & E1000_TARC_ENABLE) {
-        e1000e_tx_ring_init(core, &txr, qidx);
-        e1000e_start_xmit(core, &txr);
-    }
-}
-
 static void igb_set_tdt(E1000ECore *core, int index, uint32_t val)
 {
-    e1000e_set_tdt(core, index, val & IGB_TDT_MASK);
+    E1000E_TxRing txr;
+    int qn = e1000e_mq_queue_idx(TDT0, index);
+
+    core->mac[index] = val & IGB_TDT_MASK;
+    igb_tx_ring_init(core, &txr, qn);
+    e1000e_start_xmit(core, &txr);
 }
 
 static void
