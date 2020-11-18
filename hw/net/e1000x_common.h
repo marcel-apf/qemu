@@ -115,6 +115,11 @@ enum {
     defreg(RDBAH8),  defreg(RDBAH9),  defreg(RDBAH10), defreg(RDBAH11),
     defreg(RDBAH12), defreg(RDBAH13), defreg(RDBAH14), defreg(RDBAH15),
 
+    /*defreg(RDLEN0),  defreg(RDLEN1),*/  defreg(RDLEN2),  defreg(RDLEN3),
+    defreg(RDLEN4),  defreg(RDLEN5),  defreg(RDLEN6),  defreg(RDLEN7),
+    defreg(RDLEN8),  defreg(RDLEN9),  defreg(RDLEN10), defreg(RDLEN11),
+    defreg(RDLEN12), defreg(RDLEN13), defreg(RDLEN14), defreg(RDLEN15),
+
     defreg(TDBAL0),  /*defreg(TDBAL1),*/  defreg(TDBAL2),  defreg(TDBAL3),
     defreg(TDBAL4),  defreg(TDBAL5),  defreg(TDBAL6),  defreg(TDBAL7),
     defreg(TDBAL8),  defreg(TDBAL9),  defreg(TDBAL10), defreg(TDBAL11),
