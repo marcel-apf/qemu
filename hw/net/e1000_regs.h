@@ -190,6 +190,7 @@
 #define IGB_IVAR       0x01700  /* Interrupt Vector Allocation Register (1st) - RW */
 #define IGB_IVAR_MISC  0x01740  /* Interrupt Vector Allocation Register (last) - RW */
 #define IGB_EIAC       0x0152C  /* Extended Interrupt Auto Clear - RW */
+#define IGB_EITR       0x01680  /* Interrupt Throttle - RW */
 
 #define E1000_TXPBS    0x03404  /* Tx Packet Buffer Size - RW */
 #define E1000_DTXCTL   0x03590  /* DMA TX Control - RW */

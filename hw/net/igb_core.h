@@ -46,7 +46,7 @@
 /* TBD: handle igb sizes, vectors = 25, queues = 16!
  * Just set some conservative values here to work with for now
  */
-#define IGB_MSIX_VEC_NUM     (5)
+#define IGB_MSIX_VEC_NUM     (25)
 #define IGB_NUM_QUEUES       (16)
 
 typedef struct E1000Core E1000ECore;
@@ -100,12 +100,12 @@ struct E1000Core {
     E1000IntrDelayTimer tadv;
     E1000IntrDelayTimer tidv;
 
-    E1000IntrDelayTimer eitr[E1000E_MSIX_VEC_NUM];
-    bool eitr_intr_pending[E1000E_MSIX_VEC_NUM];
+    E1000IntrDelayTimer eitr[IGB_MSIX_VEC_NUM];
+    bool eitr_intr_pending[IGB_MSIX_VEC_NUM];
 
     VMChangeStateEntry *vmstate;
 
-    uint32_t eitr_guest_value[E1000E_MSIX_VEC_NUM];
+    uint32_t eitr_guest_value[IGB_MSIX_VEC_NUM];
 
     uint16_t vet;
 
