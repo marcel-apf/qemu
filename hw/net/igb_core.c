@@ -2401,12 +2401,6 @@ static void igb_set_dbal(E1000ECore *core, int index, uint32_t val)
     core->mac[index] = val & IGB_XDBAL_MASK;
 }
 
-static void
-e1000e_set_dbal(E1000ECore *core, int index, uint32_t val)
-{
-    core->mac[index] = val & E1000_XDBAL_MASK;
-}
-
 static void igb_set_tdt(E1000ECore *core, int index, uint32_t val)
 {
     E1000E_TxRing txr;
@@ -2831,7 +2825,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(GSCL_3),
     e1000e_getreg(GSCN_2),
     e1000e_getreg(RSRPD),
-    e1000e_getreg(RDBAL1),
     e1000e_getreg(FCAH),
     e1000e_getreg(FCRTH),
     e1000e_getreg(FLOP),
@@ -2964,6 +2957,21 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(FCRUC),
     e1000e_getreg(VET),
     e1000e_getreg(RDBAL0),
+    e1000e_getreg(RDBAL1),
+    e1000e_getreg(RDBAL2),
+    e1000e_getreg(RDBAL3),
+    e1000e_getreg(RDBAL4),
+    e1000e_getreg(RDBAL5),
+    e1000e_getreg(RDBAL6),
+    e1000e_getreg(RDBAL7),
+    e1000e_getreg(RDBAL8),
+    e1000e_getreg(RDBAL9),
+    e1000e_getreg(RDBAL10),
+    e1000e_getreg(RDBAL11),
+    e1000e_getreg(RDBAL12),
+    e1000e_getreg(RDBAL13),
+    e1000e_getreg(RDBAL14),
+    e1000e_getreg(RDBAL15),
     e1000e_getreg(TDBAH0),
     e1000e_getreg(TDBAH1),
     e1000e_getreg(TDBAH2),
@@ -3299,8 +3307,22 @@ static const writeops e1000e_macreg_writeops[] = {
     [TDBAL13]  = igb_set_dbal,
     [TDBAL14]  = igb_set_dbal,
     [TDBAL15]  = igb_set_dbal,
-    [RDBAL0]   = e1000e_set_dbal,
-    [RDBAL1]   = e1000e_set_dbal,
+    [RDBAL0]   = igb_set_dbal,
+    [RDBAL1]   = igb_set_dbal,
+    [RDBAL2]   = igb_set_dbal,
+    [RDBAL3]   = igb_set_dbal,
+    [RDBAL4]   = igb_set_dbal,
+    [RDBAL5]   = igb_set_dbal,
+    [RDBAL6]   = igb_set_dbal,
+    [RDBAL7]   = igb_set_dbal,
+    [RDBAL8]   = igb_set_dbal,
+    [RDBAL9]   = igb_set_dbal,
+    [RDBAL10]  = igb_set_dbal,
+    [RDBAL11]  = igb_set_dbal,
+    [RDBAL12]  = igb_set_dbal,
+    [RDBAL13]  = igb_set_dbal,
+    [RDBAL14]  = igb_set_dbal,
+    [RDBAL15]  = igb_set_dbal,
     [RDH1]     = e1000e_set_16bit,
     [RDT1]     = e1000e_set_rdt,
     [STATUS]   = e1000e_set_status,
