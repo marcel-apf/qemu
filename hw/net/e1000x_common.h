@@ -105,6 +105,11 @@ enum {
     defreg(EIMC),   defreg(TXPBS),      defreg(TCTL_EXT),
     defreg(DTXCTL), defreg(RXPBS),
 
+    /*defreg(RDBAL0),  defreg(RDBAL1),*/  defreg(RDBAL2),  defreg(RDBAL3),
+    defreg(RDBAL4),  defreg(RDBAL5),  defreg(RDBAL6),  defreg(RDBAL7),
+    defreg(RDBAL8),  defreg(RDBAL9),  defreg(RDBAL10), defreg(RDBAL11),
+    defreg(RDBAL12), defreg(RDBAL13), defreg(RDBAL14), defreg(RDBAL15),
+
     defreg(TDBAL0),  /*defreg(TDBAL1),*/  defreg(TDBAL2),  defreg(TDBAL3),
     defreg(TDBAL4),  defreg(TDBAL5),  defreg(TDBAL6),  defreg(TDBAL7),
     defreg(TDBAL8),  defreg(TDBAL9),  defreg(TDBAL10), defreg(TDBAL11),
