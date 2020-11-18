@@ -247,6 +247,23 @@
 #define E1000_RDLEN14   0xc388
 #define E1000_RDLEN15   0xc3c8
 
+#define E1000_SRRCTL0   0x280c  /* Split and Replication Receive Control - RW */
+#define E1000_SRRCTL1   0x290c
+#define E1000_SRRCTL2   0x2a0c
+#define E1000_SRRCTL3   0x2b0c
+#define E1000_SRRCTL4   0xc10c
+#define E1000_SRRCTL5   0xc14c
+#define E1000_SRRCTL6   0xc18c
+#define E1000_SRRCTL7   0xc1cc
+#define E1000_SRRCTL8   0xc20c
+#define E1000_SRRCTL9   0xc24c
+#define E1000_SRRCTL10  0xc28c
+#define E1000_SRRCTL11  0xc2cc
+#define E1000_SRRCTL12  0xc30c
+#define E1000_SRRCTL13  0xc34c
+#define E1000_SRRCTL14  0xc38c
+#define E1000_SRRCTL15  0xc3cc
+
 #define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
 //#define E1000_TDBAL1    0x3900
 #define E1000_TDBAL2    0x3a00
