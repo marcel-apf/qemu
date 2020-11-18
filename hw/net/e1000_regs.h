@@ -230,6 +230,23 @@
 #define E1000_RDBAH14   0xc384
 #define E1000_RDBAH15   0xc3c4
 
+//#define E1000_RDLEN0    0x2808  /* RX Descriptor Ring Length - RW */
+//#define E1000_RDLEN1    0x2908
+#define E1000_RDLEN2    0x2a08
+#define E1000_RDLEN3    0x2b08
+#define E1000_RDLEN4    0xc108
+#define E1000_RDLEN5    0xc148
+#define E1000_RDLEN6    0xc188
+#define E1000_RDLEN7    0xc1c8
+#define E1000_RDLEN8    0xc208
+#define E1000_RDLEN9    0xc248
+#define E1000_RDLEN10   0xc288
+#define E1000_RDLEN11   0xc2c8
+#define E1000_RDLEN12   0xc308
+#define E1000_RDLEN13   0xc348
+#define E1000_RDLEN14   0xc388
+#define E1000_RDLEN15   0xc3c8
+
 #define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
 //#define E1000_TDBAL1    0x3900
 #define E1000_TDBAL2    0x3a00
