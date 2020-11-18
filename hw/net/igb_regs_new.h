@@ -44,6 +44,7 @@
 #define IGB_INT_SW_WD       0x04000000 /* Software Watchdog */
 #define IGB_INT_OUTSYNC     0x10000000 /* DMA Tx Out of Sync */
 #define IGB_INT_TCP_TIMER   0x40000000 /* TCP Timer */
+#define IGB_INT_INTA        0x80000000 /* Interrupt Asserted */
 
 /* Extended Interrupts */
 

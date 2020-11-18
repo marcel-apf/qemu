@@ -2423,17 +2423,26 @@ e1000e_set_ics(E1000ECore *core, int index, uint32_t val)
     e1000e_set_interrupt_cause(core, val);
 }
 
+static void write_iam_content_to_ims(E1000ECore *core)
+{
+    /* If GPIE.NSICR = 0, then the copy of IAM to IMS will occur only if at
+       least one bit is set in the IMS and there is a true interrupt as
+       reflected in ICR.INTA. */
+    if ((core->mac[GPIE] & IGB_GPIE_NSICR) ||
+        (core->mac[IMS] && (core->mac[ICR] & IGB_INT_INTA)))
+    {
+        core->mac[IMS] = core->mac[IAM];
+    }
+}
+
 static void igb_set_icr(E1000ECore *core, int index, uint32_t val)
 {
     uint32_t icr = core->mac[ICR] & ~val;
 
-    if (core->mac[ICR]) {
-        core->mac[EICR] &= IGB_EINT_OTHER_CAUSE;
-    }
-    trace_igb_irq_icr_write(val, core->mac[ICR], icr,
-        !!(core->mac[EICR] & IGB_EINT_OTHER_CAUSE));
+    trace_igb_irq_icr_write(val, core->mac[ICR], icr);
     core->mac[ICR] = icr;
-    e1000e_update_interrupt_state(core);
+    write_iam_content_to_ims(core);
+    igb_update_interrupt_state(core);
 }
 
 static void
@@ -2554,6 +2563,7 @@ static uint32_t igb_mac_icr_read(E1000ECore *core, int index)
         }
     }
 
+    write_iam_content_to_ims(core);
     igb_update_interrupt_state(core);
     return ret;
 }
