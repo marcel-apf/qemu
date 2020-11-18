@@ -298,6 +298,23 @@
 #define E1000_RDT14 0xc398
 #define E1000_RDT15 0xc3d8
 
+#define E1000_RXDCTL0   0x2828  /* Receive Descriptor Control */
+//#define E1000_RXDCTL1   0x2928
+#define E1000_RXDCTL2   0x2a28
+#define E1000_RXDCTL3   0x2b28
+#define E1000_RXDCTL4   0xc128
+#define E1000_RXDCTL5   0xc168
+#define E1000_RXDCTL6   0xc1a8
+#define E1000_RXDCTL7   0xc1e8
+#define E1000_RXDCTL8   0xc228
+#define E1000_RXDCTL9   0xc268
+#define E1000_RXDCTL10  0xc2a8
+#define E1000_RXDCTL11  0xc2e8
+#define E1000_RXDCTL12  0xc328
+#define E1000_RXDCTL13  0xc368
+#define E1000_RXDCTL14  0xc3a8
+#define E1000_RXDCTL15  0xc3e8
+
 #define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
 //#define E1000_TDBAL1    0x3900
 #define E1000_TDBAL2    0x3a00
