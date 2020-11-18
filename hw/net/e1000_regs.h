@@ -213,6 +213,23 @@
 #define E1000_RDBAL14   0xc380
 #define E1000_RDBAL15   0xc3c0
 
+//#define E1000_RDBAH0    0x2804  /* RX Descriptor Base High - RW */
+//#define E1000_RDBAH1    0x2904
+#define E1000_RDBAH2    0x2a04
+#define E1000_RDBAH3    0x2b04
+#define E1000_RDBAH4    0xc104
+#define E1000_RDBAH5    0xc144
+#define E1000_RDBAH6    0xc184
+#define E1000_RDBAH7    0xc1c4
+#define E1000_RDBAH8    0xc204
+#define E1000_RDBAH9    0xc244
+#define E1000_RDBAH10   0xc284
+#define E1000_RDBAH11   0xc2c4
+#define E1000_RDBAH12   0xc304
+#define E1000_RDBAH13   0xc344
+#define E1000_RDBAH14   0xc384
+#define E1000_RDBAH15   0xc3c4
+
 #define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
 //#define E1000_TDBAL1    0x3900
 #define E1000_TDBAL2    0x3a00
