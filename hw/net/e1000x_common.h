@@ -103,7 +103,7 @@ enum {
     defreg(FWSM),   defreg(SW_FW_SYNC), defreg(HTCBDPC), defreg(GPIE),
     defreg(EICR),   defreg(EICS),       defreg(EIMS),    defreg(EIAM),
     defreg(EIMC),   defreg(TXPBS),      defreg(TCTL_EXT),
-    defreg(DTXCTL),
+    defreg(DTXCTL), defreg(RXPBS),
 
     defreg(TDBAL0),  /*defreg(TDBAL1),*/  defreg(TDBAL2),  defreg(TDBAL3),
     defreg(TDBAL4),  defreg(TDBAL5),  defreg(TDBAL6),  defreg(TDBAL7),
