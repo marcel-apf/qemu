@@ -264,6 +264,23 @@
 #define E1000_SRRCTL14  0xc38c
 #define E1000_SRRCTL15  0xc3cc
 
+//#define E1000_RDH0  0x2810  /* RX Descriptor Head - RW */
+//#define E1000_RDH1  0x2910
+#define E1000_RDH2  0x2a10
+#define E1000_RDH3  0x2b10
+#define E1000_RDH4  0xc110
+#define E1000_RDH5  0xc150
+#define E1000_RDH6  0xc190
+#define E1000_RDH7  0xc1d0
+#define E1000_RDH8  0xc210
+#define E1000_RDH9  0xc250
+#define E1000_RDH10 0xc290
+#define E1000_RDH11 0xc2d0
+#define E1000_RDH12 0xc310
+#define E1000_RDH13 0xc350
+#define E1000_RDH14 0xc390
+#define E1000_RDH15 0xc3d0
+
 #define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
 //#define E1000_TDBAL1    0x3900
 #define E1000_TDBAL2    0x3a00
