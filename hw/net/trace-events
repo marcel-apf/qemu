@@ -315,7 +315,7 @@ igb_mac_set_permanent(uint8_t b0, uint8_t b1, uint8_t b2, uint8_t b3, uint8_t b4
 igb_irq_icr_read(uint32_t icr) "Current ICR: 0x%x"
 igb_irq_icr_clear_gpie_nsicr(void) "Clearing ICR on read due to GPIE.NSICR enabled"
 igb_irq_icr_clear_zero_ims(void) "Clearing ICR on read due to zero IMS"
-igb_irq_icr_write(uint32_t bits, uint32_t old_icr, uint32_t new_icr, bool other) "Clearing ICR bits 0x%x: 0x%x --> 0x%x EICR.Other: %d"
+igb_irq_icr_write(uint32_t bits, uint32_t old_icr, uint32_t new_icr) "Clearing ICR bits 0x%x: 0x%x --> 0x%x"
 igb_irq_set_iam(uint32_t icr) "Update IAM: 0x%x"
 igb_irq_read_iam(uint32_t icr) "Current IAM: 0x%x"
 igb_irq_write_eics(uint32_t val, bool msix) "Update EICS: 0x%x MSI-X: %d"
