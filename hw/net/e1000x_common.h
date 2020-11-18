@@ -135,7 +135,7 @@ enum {
     defreg(TXDCTL8),  defreg(TXDCTL9),  defreg(TXDCTL10), defreg(TXDCTL11),
     defreg(TXDCTL12), defreg(TXDCTL13), defreg(TXDCTL14), defreg(TXDCTL15),
 
-    idefreg(IVAR),  idefreg(EIAC)
+    idefreg(IVAR),  idefreg(EIAC), idefreg(EITR)
 };
 
 static inline void

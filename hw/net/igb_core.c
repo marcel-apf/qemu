@@ -186,10 +186,10 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
     core->tadv.core = core;
     core->tidv.core = core;
 
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
+    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         core->eitr[i].core = core;
-        core->eitr[i].delay_reg = EITR + i;
-        core->eitr[i].delay_resolution_ns = E1000_INTR_THROTTLING_NS_RES;
+        core->eitr[i].delay_reg = I_EITR + i;
+        core->eitr[i].delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
     }
 
     if (!create) {
@@ -208,11 +208,9 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
     core->tidv.timer =
         timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->tidv);
 
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
-        core->eitr[i].timer =
-            timer_new_ns(QEMU_CLOCK_VIRTUAL,
-                         e1000e_intrmgr_on_msix_throttling_timer,
-                         &core->eitr[i]);
+    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
+        core->eitr[i].timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
+            e1000e_intrmgr_on_msix_throttling_timer, &core->eitr[i]);
     }
 }
 
@@ -336,7 +334,7 @@ e1000e_intrmgr_resume(E1000ECore *core)
     e1000e_intmgr_timer_resume(&core->tidv);
     e1000e_intmgr_timer_resume(&core->tadv);
 
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
+    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         e1000e_intmgr_timer_resume(&core->eitr[i]);
     }
 }
@@ -352,7 +350,7 @@ e1000e_intrmgr_pause(E1000ECore *core)
     e1000e_intmgr_timer_pause(&core->tidv);
     e1000e_intmgr_timer_pause(&core->tadv);
 
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
+    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         e1000e_intmgr_timer_pause(&core->eitr[i]);
     }
 }
@@ -366,7 +364,7 @@ e1000e_intrmgr_reset(E1000ECore *core)
 
     e1000e_intrmgr_stop_delay_timers(core);
 
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
+    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         e1000e_intrmgr_stop_timer(&core->eitr[i]);
     }
 }
@@ -388,7 +386,7 @@ e1000e_intrmgr_pci_unint(E1000ECore *core)
     timer_del(core->tidv.timer);
     timer_free(core->tidv.timer);
 
-    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
+    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         timer_del(core->eitr[i].timer);
         timer_free(core->eitr[i].timer);
     }
@@ -1913,7 +1911,7 @@ e1000e_clear_ims_bits(E1000ECore *core, uint32_t bits)
 
 static inline bool
 e1000e_postpone_interrupt(bool *interrupt_pending,
-                           E1000IntrDelayTimer *timer)
+                          E1000IntrDelayTimer *timer)
 {
     if (timer->running) {
         trace_e1000e_irq_postponed_by_xitr(timer->delay_reg << 2);
@@ -2541,10 +2539,14 @@ e1000e_mac_swsm_read(E1000ECore *core, int index)
     return val;
 }
 
-static uint32_t
-e1000e_mac_eitr_read(E1000ECore *core, int index)
+static uint32_t igb_mac_eitr_read(E1000ECore *core, int index)
 {
-    return core->eitr_guest_value[index - EITR];
+    uint32_t val = core->eitr_guest_value[index - I_EITR];
+
+    /* CNT_INGR (bit 31) is always read as zero. */
+    val &= (BIT(31) - 1);
+
+    return val;
 }
 
 static uint32_t igb_mac_icr_read(E1000ECore *core, int index)
@@ -2726,16 +2728,15 @@ e1000e_set_rxdctl(E1000ECore *core, int index, uint32_t val)
     core->mac[RXDCTL] = core->mac[RXDCTL1] = val;
 }
 
-static void
-e1000e_set_eitr(E1000ECore *core, int index, uint32_t val)
+static void igb_set_eitr(E1000ECore *core, int index, uint32_t val)
 {
-    uint32_t interval = val & 0xffff;
-    uint32_t eitr_num = index - EITR;
+    uint32_t interval = val & 0x7FFE;
+    uint32_t eitr_num = index - I_EITR;
 
-    trace_e1000e_irq_eitr_set(eitr_num, val);
+    trace_igb_irq_eitr_set(eitr_num, val);
 
-    core->eitr_guest_value[eitr_num] = interval;
-    core->mac[index] = MAX(interval, E1000E_MIN_XITR);
+    core->eitr_guest_value[eitr_num] = val;
+    core->mac[index] = interval;
 }
 
 static void
@@ -3079,7 +3080,7 @@ static const readops e1000e_macreg_readops[] = {
     [RETA ... RETA + 31]   = e1000e_mac_readreg,
     [RSSRK ... RSSRK + 31] = e1000e_mac_readreg,
     [MAVTV0 ... MAVTV3]    = e1000e_mac_readreg,
-    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = e1000e_mac_eitr_read,
+    [I_EITR ... I_EITR + IGB_MSIX_VEC_NUM - 1] = igb_mac_eitr_read,
 
     /* IGB specific - should go in a disjoint struct
      * but put here now just to make diffs easier:
@@ -3329,7 +3330,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [RETA ... RETA + 31]     = e1000e_mac_writereg,
     [RSSRK ... RSSRK + 31]   = e1000e_mac_writereg,
     [MAVTV0 ... MAVTV3]      = e1000e_mac_writereg,
-    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = e1000e_set_eitr,
+    [I_EITR ... I_EITR + IGB_MSIX_VEC_NUM - 1] = igb_set_eitr,
 
     /* IGB specific - should go in a disjoint struct
      * but put here now just to make changes comprehensible:
@@ -3573,7 +3574,6 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [FACTPS]        = E1000_FACTPS_LAN0_ON | 0x20000000,
     [SWSM]          = 0,
     [RXCSUM]        = E1000_RXCSUM_IPOFLD | E1000_RXCSUM_TUOFLD,
-    [EITR...EITR + E1000E_MSIX_VEC_NUM - 1] = E1000E_MIN_XITR,
     [TXPBS]         = 0x28,
     [TCTL]          = (0x1 << 3) | (0xF << 4) | (0x40 << 12) | (0x1 << 26) | (0xA << 28),
     [TCTL_EXT]      = 0x40 | (0x42 << 10),
