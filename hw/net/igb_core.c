@@ -2110,7 +2110,10 @@ static void igb_set_eics(E1000ECore *core, int index, uint32_t val)
 
     core->mac[EICS] |=
         msix ? (val & IGB_EINT_MSIX_MASK) : (val & IGB_EINT_LEGACY_MASK);
-    core->mac[EICR] |= core->mac[EICS];
+
+    // TODO: Move to igb_update_interrupt_state if EICS is modified in other
+    // places.
+    core->mac[EICR] = core->mac[EICS];
 
     igb_update_interrupt_state(core);
 }
