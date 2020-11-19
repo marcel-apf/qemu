@@ -54,6 +54,8 @@
                                      second according to spec 10.2.4.2 */
 #define E1000E_MAX_TX_FRAGS (64)
 
+static void igb_update_interrupt_state(E1000ECore *core);
+
 static inline void
 e1000e_set_interrupt_cause(E1000ECore *core, uint32_t val);
 
@@ -364,7 +366,7 @@ e1000e_intrmgr_reset(E1000ECore *core)
 
     e1000e_intrmgr_stop_delay_timers(core);
 
-    for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
+    for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         e1000e_intrmgr_stop_timer(&core->eitr[i]);
     }
 }
@@ -407,6 +409,7 @@ e1000e_rx_csum_enabled(E1000ECore *core)
 static inline bool
 e1000e_rx_use_legacy_descriptor(E1000ECore *core)
 {
+    return false;
     return (core->mac[RFCTL] & E1000_RFCTL_EXTEN) ? false : true;
 }
 
@@ -690,16 +693,40 @@ e1000e_process_tx_desc(E1000ECore *core,
     }
 }
 
-static inline uint32_t
-e1000e_tx_wb_interrupt_cause(E1000ECore *core, int queue_idx)
+static inline uint32_t igb_tx_wb_interrupt_cause(E1000ECore *core,
+                                                 int queue_idx)
 {
+    uint32_t n, int_alloc = 0;
+
     if (!msix_enabled(core->owner)) {
-        return E1000_ICR_TXDW;
+        return BIT(queue_idx);
     }
 
-    return (queue_idx == 0) ? E1000_ICR_TXQ0 : E1000_ICR_TXQ1;
+    n = ((queue_idx < 8) ? (queue_idx*4 + 1) : ((queue_idx-8)*4 + 3));
+
+    int_alloc = (core->mac[I_IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
+
+    return (int_alloc & BIT(7)) ? BIT(int_alloc & 0x1f) : 0;
 }
 
+static inline uint32_t igb_rx_wb_interrupt_cause(E1000ECore *core,
+                                                 int queue_idx,
+                                                 bool min_threshold_hit)
+{
+    uint32_t n, int_alloc = 0;
+
+    if (!msix_enabled(core->owner)) {
+        return BIT(queue_idx);
+    }
+
+    n = ((queue_idx < 8) ? (queue_idx*4) : ((queue_idx-8)*4 + 2));
+
+    int_alloc = (core->mac[I_IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
+
+    return (int_alloc & BIT(7)) ? BIT(int_alloc & 0x1f) : 0;
+}
+
+#if 0
 static inline uint32_t
 e1000e_rx_wb_interrupt_cause(E1000ECore *core, int queue_idx,
                              bool min_threshold_hit)
@@ -710,6 +737,7 @@ e1000e_rx_wb_interrupt_cause(E1000ECore *core, int queue_idx,
 
     return (queue_idx == 0) ? E1000_ICR_RXQ0 : E1000_ICR_RXQ1;
 }
+#endif
 
 static uint32_t
 e1000e_txdesc_writeback(E1000ECore *core, dma_addr_t base,
@@ -717,10 +745,11 @@ e1000e_txdesc_writeback(E1000ECore *core, dma_addr_t base,
 {
     uint32_t txd_upper, txd_lower = le32_to_cpu(dp->lower.data);
 
+    /* TODO: Check CMD because IVAR doesn't include this flag.
     if (!(txd_lower & E1000_TXD_CMD_RS) &&
         !(core->mac[IVAR] & E1000_IVAR_TX_INT_EVERY_WB)) {
         return 0;
-    }
+    }*/
 
     *ide = (txd_lower & E1000_TXD_CMD_IDE) ? true : false;
 
@@ -729,7 +758,7 @@ e1000e_txdesc_writeback(E1000ECore *core, dma_addr_t base,
     dp->upper.data = cpu_to_le32(txd_upper);
     pci_dma_write(core->owner, base + ((char *)&dp->upper - (char *)dp),
                   &dp->upper, sizeof(dp->upper));
-    return e1000e_tx_wb_interrupt_cause(core, queue_idx);
+    return igb_tx_wb_interrupt_cause(core, queue_idx);
 }
 
 typedef struct E1000E_RingInfo_st {
@@ -812,6 +841,7 @@ typedef struct E1000E_TxRing_st {
 static inline int
 e1000e_mq_queue_idx(int base_reg_idx, int reg_idx)
 {
+    // TODO: Check if still works with 15 queues.
     return (reg_idx - base_reg_idx) / (0x100 >> 2);
 }
 
@@ -847,32 +877,47 @@ typedef struct E1000E_RxRing_st {
     const E1000E_RingInfo *i;
 } E1000E_RxRing;
 
-static inline void
-e1000e_rx_ring_init(E1000ECore *core, E1000E_RxRing *rxr, int idx)
+static inline void igb_rx_ring_init(E1000ECore *core, E1000E_RxRing *rxr,
+                                    int idx)
 {
-    static const E1000E_RingInfo i[E1000E_NUM_QUEUES] = {
+    static const E1000E_RingInfo i[IGB_NUM_QUEUES] = {
         { RDBAH0, RDBAL0, RDLEN0, RDH0, RDT0, 0 },
-        { RDBAH1, RDBAL1, RDLEN1, RDH1, RDT1, 1 }
+        { RDBAH1, RDBAL1, RDLEN1, RDH1, RDT1, 1 },
+        { RDBAH2, RDBAL2, RDLEN2, RDH2, RDT2, 2 },
+        { RDBAH3, RDBAL3, RDLEN3, RDH3, RDT3, 3 },
+        { RDBAH4, RDBAL4, RDLEN4, RDH4, RDT4, 4 },
+        { RDBAH5, RDBAL5, RDLEN5, RDH5, RDT5, 5 },
+        { RDBAH6, RDBAL6, RDLEN6, RDH6, RDT6, 6 },
+        { RDBAH7, RDBAL7, RDLEN7, RDH7, RDT7, 7 },
+        { RDBAH8, RDBAL8, RDLEN8, RDH8, RDT8, 8 },
+        { RDBAH9, RDBAL9, RDLEN9, RDH9, RDT9, 9 },
+        { RDBAH10, RDBAL10, RDLEN10, RDH10, RDT10, 10 },
+        { RDBAH11, RDBAL11, RDLEN11, RDH11, RDT11, 11 },
+        { RDBAH12, RDBAL12, RDLEN12, RDH12, RDT12, 12 },
+        { RDBAH13, RDBAL13, RDLEN13, RDH13, RDT13, 13 },
+        { RDBAH14, RDBAL14, RDLEN14, RDH14, RDT14, 14 },
+        { RDBAH15, RDBAL15, RDLEN15, RDH15, RDT15, 15 }
     };
 
     assert(idx < ARRAY_SIZE(i));
 
-    rxr->i      = &i[idx];
+    rxr->i = &i[idx];
 }
 
-static void
-e1000e_start_xmit(E1000ECore *core, const E1000E_TxRing *txr)
+static void igb_start_xmit(E1000ECore *core, const E1000E_TxRing *txr)
 {
     dma_addr_t base;
     struct e1000_tx_desc desc;
     bool ide = false;
     const E1000E_RingInfo *txi = txr->i;
-    uint32_t cause = E1000_ICS_TXQE;
+    uint32_t cause = 0;
 
     if (!(core->mac[TCTL] & E1000_TCTL_EN)) {
         trace_e1000e_tx_disabled();
         return;
     }
+
+    // 7.2.2.6 Transmit Descriptor Write-BackTXDCTL[n].WTHRESH = 0b
 
     while (!e1000e_ring_empty(core, txi)) {
         base = e1000e_ring_head_descr(core, txi);
@@ -889,7 +934,8 @@ e1000e_start_xmit(E1000ECore *core, const E1000E_TxRing *txr)
     }
 
     if (!ide || !e1000e_intrmgr_delay_tx_causes(core, &cause)) {
-        e1000e_set_interrupt_cause(core, cause);
+        core->mac[EICR] |= cause;
+        igb_update_interrupt_state(core);
     }
 }
 
@@ -911,7 +957,7 @@ void igb_start_recv(E1000ECore *core)
     int i;
 
     trace_e1000e_rx_start_recv();
-
+fprintf(stderr, "core->max_queue_num: %d\n", core->max_queue_num);
     for (i = 0; i <= core->max_queue_num; i++) {
         qemu_flush_queued_packets(qemu_get_subqueue(core->owner_nic, i));
     }
@@ -925,10 +971,10 @@ bool igb_can_receive(E1000ECore *core)
         return false;
     }
 
-    for (i = 0; i < E1000E_NUM_QUEUES; i++) {
+    for (i = 0; i < IGB_NUM_QUEUES; i++) {
         E1000E_RxRing rxr;
 
-        e1000e_rx_ring_init(core, &rxr, i);
+        igb_rx_ring_init(core, &rxr, i);
         if (e1000e_ring_enabled(core, rxr.i) &&
             e1000e_has_rxbufs(core, rxr.i, 1)) {
             trace_e1000e_rx_can_recv();
@@ -1229,7 +1275,7 @@ e1000e_write_lgcy_rx_descr(E1000ECore *core, uint8_t *desc,
     struct e1000_rx_desc *d = (struct e1000_rx_desc *) desc;
 
     assert(!rss_info->enabled);
-
+fprintf(stderr, "igb_write_lgcy_rx_descr len: %d\n", length);
     d->length = cpu_to_le16(length);
     d->csum = 0;
 
@@ -1252,7 +1298,7 @@ e1000e_write_ext_rx_descr(E1000ECore *core, uint8_t *desc,
     union e1000_rx_desc_extended *d = (union e1000_rx_desc_extended *) desc;
 
     memset(&d->wb, 0, sizeof(d->wb));
-
+fprintf(stderr, "igb_write_ext_rx_descr len: %d\n", length);
     d->wb.upper.length = cpu_to_le16(length);
 
     e1000e_build_rx_metadata(core, pkt, pkt != NULL,
@@ -1643,7 +1689,7 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
                                e1000x_vlan_enabled(core->mac), core->vet);
 
     e1000e_rss_parse_packet(core, core->rx_pkt, &rss_info);
-    e1000e_rx_ring_init(core, &rxr, rss_info.queue);
+    igb_rx_ring_init(core, &rxr, rss_info.queue);
 
     trace_e1000e_rx_rss_dispatched_to_queue(rxr.i->idx);
 
@@ -1670,7 +1716,7 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
 
         /* Check if receive descriptor minimum threshold hit */
         rdmts_hit = e1000e_rx_descr_threshold_hit(core, rxr.i);
-        n |= e1000e_rx_wb_interrupt_cause(core, rxr.i->idx, rdmts_hit);
+        n |= igb_rx_wb_interrupt_cause(core, rxr.i->idx, rdmts_hit);
 
         trace_e1000e_rx_written_to_guest(n);
     } else {
@@ -1682,7 +1728,9 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
 
     if (!e1000e_intrmgr_delay_rx_causes(core, &n)) {
         trace_e1000e_rx_interrupt_set(n);
-        e1000e_set_interrupt_cause(core, n);
+//        e1000e_set_interrupt_cause(core, n);
+        core->mac[EICR] |= n;
+        igb_update_interrupt_state(core);
     } else {
         trace_e1000e_rx_interrupt_delayed(n);
     }
@@ -1934,6 +1982,7 @@ e1000e_eitr_should_postpone(E1000ECore *core, int idx)
                                      &core->eitr[idx]);
 }
 
+#if 0
 static void
 e1000e_msix_notify_one(E1000ECore *core, uint32_t cause, uint32_t int_cfg)
 {
@@ -1963,7 +2012,6 @@ e1000e_msix_notify_one(E1000ECore *core, uint32_t cause, uint32_t int_cfg)
     effective_eiac = core->mac[EIAC] & cause;
 
     core->mac[ICR] &= ~effective_eiac;
-    core->msi_causes_pending &= ~effective_eiac;
 
     if (!(core->mac[CTRL_EXT] & E1000_CTRL_EXT_IAME)) {
         core->mac[IMS] &= ~effective_eiac;
@@ -1998,6 +2046,7 @@ e1000e_msix_notify(E1000ECore *core, uint32_t causes)
                                E1000_IVAR_OTHER(core->mac[IVAR]));
     }
 }
+#endif
 
 static inline void
 e1000e_fix_icr_asserted(E1000ECore *core)
@@ -2010,70 +2059,50 @@ e1000e_fix_icr_asserted(E1000ECore *core)
     trace_e1000e_irq_fix_icr_asserted(core->mac[ICR]);
 }
 
-static void
-e1000e_send_msi(E1000ECore *core, bool msix)
+static void igb_send_msi(E1000ECore *core, bool msix)
 {
-    uint32_t causes = core->mac[ICR] & core->mac[IMS] & ~E1000_ICR_ASSERTED;
+    uint32_t causes = core->mac[EICR] & core->mac[EIMS];
+    uint32_t effective_eiac;
+    int vector;
 
-    core->msi_causes_pending &= causes;
-    causes ^= core->msi_causes_pending;
-    if (causes == 0) {
-        return;
-    }
-    core->msi_causes_pending |= causes;
+    for (vector = 0; vector < IGB_MSIX_VEC_NUM; ++vector) {
+        if ((causes & BIT(vector)) &&
+            !e1000e_eitr_should_postpone(core, vector)) {
 
-    if (msix) {
-        e1000e_msix_notify(core, causes);
-    } else {
-        if (!e1000e_eitr_should_postpone(core, 0)) {
-            trace_e1000e_irq_msi_notify(causes);
-            msi_notify(core->owner, 0);
+            trace_e1000e_irq_msix_notify_vec(vector);
+            msix_notify(core->owner, vector);
+
+            trace_e1000e_irq_icr_clear_eiac(core->mac[EICR],
+                                            core->mac[I_EIAC]);
+
+            effective_eiac = core->mac[I_EIAC] & BIT(vector);
+            core->mac[EICR] &= ~effective_eiac;
         }
     }
 }
 
 static void igb_update_interrupt_state(E1000ECore *core)
 {
-
-}
-
-static void
-e1000e_update_interrupt_state(E1000ECore *core)
-{
     bool interrupts_pending;
     bool is_msix = msix_enabled(core->owner);
 
-    /* Set ICR[OTHER] for MSI-X */
-    if (is_msix) {
-        if (core->mac[ICR] & E1000_ICR_OTHER_CAUSES) {
-            core->mac[ICR] |= E1000_ICR_OTHER;
-            trace_e1000e_irq_add_msi_other(core->mac[ICR]);
+    if (!is_msix) {
+        if (core->mac[ICR]) {
+            core->mac[EICR] |= IGB_EINT_OTHER_CAUSE;
+            trace_e1000e_irq_add_msi_other(core->mac[EICR]);
         }
     }
 
     e1000e_fix_icr_asserted(core);
 
-    /*
-     * Make sure ICR and ICS registers have the same value.
-     * The spec says that the ICS register is write-only.  However in practice,
-     * on real hardware ICS is readable, and for reads it has the same value as
-     * ICR (except that ICS does not have the clear on read behaviour of ICR).
-     *
-     * The VxWorks PRO/1000 driver uses this behaviour.
-     */
-    core->mac[ICS] = core->mac[ICR];
+    interrupts_pending = !!(core->mac[EIMS] & core->mac[EICR]);
 
-    interrupts_pending = (core->mac[IMS] & core->mac[ICR]) ? true : false;
-    if (!interrupts_pending) {
-        core->msi_causes_pending = 0;
-    }
-
-    trace_e1000e_irq_pending_interrupts(core->mac[ICR] & core->mac[IMS],
-                                        core->mac[ICR], core->mac[IMS]);
+    trace_e1000e_irq_pending_interrupts(core->mac[EIMS] & core->mac[EICR],
+                                        core->mac[EICR], core->mac[EIMS]);
 
     if (is_msix || msi_enabled(core->owner)) {
         if (interrupts_pending) {
-            e1000e_send_msi(core, is_msix);
+            igb_send_msi(core, is_msix);
         }
     } else {
         if (interrupts_pending) {
@@ -2091,12 +2120,14 @@ e1000e_set_interrupt_cause(E1000ECore *core, uint32_t val)
 {
     trace_e1000e_irq_set_cause_entry(val, core->mac[ICR]);
 
+    // TODO: Does the IGB have Interrupts Delay?
+
     val |= e1000e_intmgr_collect_delayed_causes(core);
     core->mac[ICR] |= val;
 
     trace_e1000e_irq_set_cause_exit(val, core->mac[ICR]);
 
-    e1000e_update_interrupt_state(core);
+    igb_update_interrupt_state(core);
 }
 
 /* Temporary solution to make the changes clearer: */
@@ -2408,7 +2439,7 @@ static void igb_set_tdt(E1000ECore *core, int index, uint32_t val)
 
     core->mac[index] = val & IGB_TDT_MASK;
     igb_tx_ring_init(core, &txr, qn);
-    e1000e_start_xmit(core, &txr);
+    igb_start_xmit(core, &txr);
 }
 
 static void
@@ -2445,7 +2476,7 @@ e1000e_set_imc(E1000ECore *core, int index, uint32_t val)
 {
     trace_e1000e_irq_ims_clear_set_imc(val);
     e1000e_clear_ims_bits(core, val);
-    e1000e_update_interrupt_state(core);
+    igb_update_interrupt_state(core);
 }
 
 static void igb_set_ims(E1000ECore *core, int index, uint32_t val)
@@ -2463,7 +2494,7 @@ static void igb_set_ims(E1000ECore *core, int index, uint32_t val)
 
     trace_e1000e_irq_set_ims(val, core->mac[IMS], core->mac[IMS] | valid_val);
     core->mac[IMS] |= valid_val;
-    e1000e_update_interrupt_state(core);
+    igb_update_interrupt_state(core);
 }
 
 static void
