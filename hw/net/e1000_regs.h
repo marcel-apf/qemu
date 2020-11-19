@@ -188,6 +188,7 @@
 #define E1000_EIAM     0x01530  /* Ext. Interrupt Ack Auto Clear Mask - RW */
 #define E1000_EICR     0x01580  /* Ext. Interrupt Cause Read - R/clr */
 #define E1000_RXPBS    0x02404  /* RX packet buffer size - RW */
+#define E1000_RQDPC    0x0C030  /* Rx Queue drop packet - RC */
 #define IGB_IVAR       0x01700  /* Interrupt Vector Allocation Register (1st) - RW */
 #define IGB_IVAR_MISC  0x01740  /* Interrupt Vector Allocation Register (last) - RW */
 #define IGB_EIAC       0x0152C  /* Extended Interrupt Auto Clear - RW */
