@@ -40,8 +40,8 @@
 #define E1000E_PHY_PAGES        (0x07)
 #define E1000E_MAC_SIZE         (0x8000)
 #define E1000E_EEPROM_SIZE      (64)
-#define E1000E_MSIX_VEC_NUM     (5)
-#define E1000E_NUM_QUEUES       (2)
+#define E1000E_MSIX_VEC_NUM     (25)
+#define E1000E_NUM_QUEUES       (16)
 
 /* TBD: handle igb sizes, vectors = 25, queues = 16!
  * Just set some conservative values here to work with for now
@@ -114,8 +114,6 @@ struct E1000Core {
     NICState *owner_nic;
     PCIDevice *owner;
     void (*owner_start_recv)(PCIDevice *d);
-
-    uint32_t msi_causes_pending;
 };
 
 void igb_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size);

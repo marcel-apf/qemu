@@ -206,26 +206,26 @@ static const MemoryRegionOps io_ops = {
 
 static bool igb_nc_can_receive(NetClientState *nc)
 {
-    // IgbState *s = qemu_get_nic_opaque(nc);
-    return 0; //e1000e_can_receive(&s->core);
+    IgbState *s = qemu_get_nic_opaque(nc);
+    return igb_can_receive(&s->core);
 }
 
 static ssize_t igb_nc_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
-    // IgbState *s = qemu_get_nic_opaque(nc);
-    return 0; //igb_receive_iov(&s->core, iov, iovcnt);
+    IgbState *s = qemu_get_nic_opaque(nc);
+    return igb_receive_iov(&s->core, iov, iovcnt);
 }
 
 static ssize_t igb_nc_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
-    // IgbState *s = qemu_get_nic_opaque(nc);
-    return 0; //igb_receive(&s->core, buf, size);
+    IgbState *s = qemu_get_nic_opaque(nc);
+    return igb_receive(&s->core, buf, size);
 }
 
 static void igb_set_link_status(NetClientState *nc)
 {
-    // IgbState *s = qemu_get_nic_opaque(nc);
-    // igb_core_set_link_status(&s->core);
+    IgbState *s = qemu_get_nic_opaque(nc);
+    igb_core_set_link_status(&s->core);
 }
 
 
@@ -270,6 +270,9 @@ static void igb_init_net_peer(IgbState *s, PCIDevice *pci_dev, uint8_t *macaddr)
     DeviceState *dev = DEVICE(pci_dev);
     NetClientState *nc;
     int i;
+
+    // TODO: From where this value is set?
+    //s->conf.peers.queues = 16;
 
     s->nic = qemu_new_nic(&net_igb_info, &s->conf,
         object_get_typename(OBJECT(s)), dev->id, s);
