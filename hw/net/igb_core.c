@@ -3184,6 +3184,7 @@ static const readops e1000e_macreg_readops[] = {
     [EIMS]       = e1000e_mac_readreg,
     [EIAM]       = e1000e_mac_readreg,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_readreg,
+    [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
 
@@ -3246,6 +3247,7 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(TCTL_EXT),
     e1000e_putreg(DTXCTL),
     e1000e_putreg(RXPBS),
+    e1000e_putreg(RQDPC),
     e1000e_putreg(FCAL),
     e1000e_putreg(FCRUC),
     e1000e_putreg(AIT),
