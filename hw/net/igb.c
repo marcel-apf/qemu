@@ -55,11 +55,8 @@
 
 #define TYPE_IGB "igb"
 #define IGB(obj)   OBJECT_CHECK(IgbState, (obj), TYPE_IGB)
-#define TYPE_IGBVF "igbvf"
-#define IGBVF(obj) OBJECT_CHECK(IgbState, (obj), TYPE_IGBVF)
 
 #define IGB_MSIX_VECTORS_PF 10
-#define IGB_MSIX_VECTORS_VF 3
 #define IGB_CAP_SRIOV_OFFSET 0x160
 #define IGB_TOTAL_VFS 8
 #define IGB_VF_OFFSET 0x80
@@ -105,20 +102,6 @@ static void igb_write_config(PCIDevice *d, uint32_t address,
     if (range_covers_byte(address, len, PCI_COMMAND) &&
         (d->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
         igb_start_recv(&s->core);
-    }
-}
-
-static void igbvf_write_config(PCIDevice *d, uint32_t address,
-                             uint32_t val, int len)
-{
-    IgbState *s = IGBVF(d);
-    (void)s;
-    trace_igbvf_write_config(address, val, len);
-    pci_default_write_config(d, address, val, len);
-
-    if (range_covers_byte(address, len, PCI_COMMAND) &&
-        (d->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
-        //igb_start_recv(&s->core);
     }
 }
 
@@ -514,81 +497,6 @@ static int igb_post_load(void *opaque, int version_id)
     return igb_core_post_load(&s->core);
 }
 
-static void pci_igbvf_realize(PCIDevice *d, Error **errp)
-{
-    int v;
-    int ret;
-    IgbState *igb = IGBVF(d);
-    MemoryRegion *mr = &igb->msix;
-    /* TBD: pci_e1000_realize(d, errp); */
-    if (*errp)
-        return;
-
-    d->config_write = igbvf_write_config;
-
-    memory_region_init(mr, OBJECT(d), "igbvf-msix", 0x8000);
-    pcie_sriov_vf_register_bar(d, 3, mr);
-    ret = msix_init(d, IGB_MSIX_VECTORS_VF, mr,
-                    IGB_MSIX_BAR_IDX, 0, mr,
-                    IGB_MSIX_BAR_IDX, 0x2000, 0x70, errp);
-    if (ret) {
-        goto err_msix;
-    }
-
-    for (v = 0; v < IGB_MSIX_VECTORS_VF; v++) {
-        ret = msix_vector_use(d, v);
-        if (ret) {
-            goto err_pcie_cap;
-        }
-    }
-
-    ret = pcie_endpoint_cap_init(d, 0xa0);
-    if (ret < 0) {
-        goto err_pcie_cap;
-    }
-
-    ret = pcie_aer_init(d, 1, 0x100, 0x40, errp);
-    if (ret < 0) {
-        goto err_aer;
-    }
-
-    pcie_ari_init(d, 0x150, 1);
-    return;
-
- err_aer:
-    pcie_cap_exit(d);
- err_pcie_cap:
-    msix_unuse_all_vectors(d);
-    msix_uninit(d, mr, mr);
- err_msix:
-    return;
-    /* TBD: pci_e1000_uninit(d); */
-}
-
-static void igbvf_reset(DeviceState *dev)
-{
-    PCIDevice *d = PCI_DEVICE(dev);
-    IgbState *s = IGBVF(dev);
-
-    (void)s;
-    (void)d;
-    trace_igb_cb_qdev_reset();
-
-    /* TBD */
-}
-
-
-static void pci_igbvf_uninit(PCIDevice *d)
-{
-    IgbState *igb = IGBVF(d);
-    MemoryRegion *mr = &igb->msix;
-
-    pcie_cap_exit(d);
-    msix_uninit(d, mr, mr);
-    /* TBD: pci_e1000_uninit(d); */
-}
-
-
 static const VMStateDescription igb_vmstate_tx = {
     .name = "igb-tx",
     .version_id = 1,
@@ -729,31 +637,6 @@ static void igb_instance_init(Object * obj)
                                   DEVICE(obj));
 }
 
-static void igbvf_class_init(ObjectClass *class, void *data)
-{
-    DeviceClass *dc = DEVICE_CLASS(class);
-    PCIDeviceClass *c = PCI_DEVICE_CLASS(class);
-
-    c->realize = pci_igbvf_realize;
-    c->exit = pci_igbvf_uninit;
-    c->vendor_id = PCI_VENDOR_ID_INTEL;
-    c->device_id = IGB_82576_VF_DEV_ID;
-    c->revision = 1;
-    c->romfile = NULL;
-    c->class_id = PCI_CLASS_NETWORK_ETHERNET;
-
-    dc->desc = "Intel 82576 GbE Controller Virtual Function";
-    dc->reset = igbvf_reset;
-    dc->vmsd = &igb_vmstate;
-    device_class_set_props(dc, igb_properties);
-}
-
-
-static void igbvf_instance_init(Object * obj)
-{
-
-}
-
 static const TypeInfo igb_info = {
     .name = TYPE_IGB,
     .parent = TYPE_PCI_DEVICE,
@@ -766,23 +649,9 @@ static const TypeInfo igb_info = {
     },
 };
 
-static const TypeInfo igbvf_info = {
-    .name = TYPE_IGBVF,
-    .parent = TYPE_PCI_DEVICE,
-    .instance_size = sizeof(IgbState),
-    .class_init = igbvf_class_init,
-    .instance_init = igbvf_instance_init,
-    .interfaces = (InterfaceInfo[]) {
-        { INTERFACE_PCIE_DEVICE },
-        { }
-    },
-};
-
-
 static void igb_register_types(void)
 {
     type_register_static(&igb_info);
-    type_register_static(&igbvf_info);
 }
 
 type_init(igb_register_types)
