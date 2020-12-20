@@ -2064,7 +2064,7 @@ static void igb_send_msi(E1000ECore *core, bool msix)
     uint32_t causes = core->mac[EICR] & core->mac[EIMS];
     uint32_t effective_eiac;
     int vector;
-
+    fprintf(stderr, "igb_send_msi %d causes 0x%x", msix, causes);
     for (vector = 0; vector < IGB_MSIX_VEC_NUM; ++vector) {
         if ((causes & BIT(vector)) &&
             !e1000e_eitr_should_postpone(core, vector)) {
@@ -2210,6 +2210,11 @@ static void igb_set_eicr(E1000ECore *core, int index, uint32_t val)
 
     trace_igb_irq_write_eicr(val, msix);
     igb_update_interrupt_state(core);
+}
+
+static void igb_set_vfmb(E1000ECore *core, int index, uint32_t val)
+{
+    fprintf(stderr, "igb_set_vfmb\n");
 }
 
 static inline void
@@ -2573,6 +2578,14 @@ static uint32_t igb_mac_eitr_read(E1000ECore *core, int index)
 
     /* CNT_INGR (bit 31) is always read as zero. */
     val &= (BIT(31) - 1);
+
+    return val;
+}
+
+static uint32_t igb_vfmb_read(E1000ECore *core, int index)
+{
+    fprintf(stderr, "igb_vfmb_read\n");
+    uint32_t val = 0;//1<<7;
 
     return val;
 }
@@ -3214,6 +3227,7 @@ static const readops e1000e_macreg_readops[] = {
     [EICR]       = e1000e_mac_read_clr4,
     [EIMS]       = e1000e_mac_readreg,
     [EIAM]       = e1000e_mac_readreg,
+    [I_VFMB]     = igb_vfmb_read,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_readreg,
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4
 };
@@ -3569,6 +3583,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [EIAM] = igb_set_eiam,
     [EIMC] = igb_set_eimc,
     [EIMS] = igb_set_eims,
+    [I_VFMB] = igb_set_vfmb,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_writereg,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
