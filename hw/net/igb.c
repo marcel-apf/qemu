@@ -49,6 +49,7 @@
 #include "hw/net/igb_regs.h"
 #include "e1000x_common.h"
 #include "igb_core.h"
+#include "igb.h"
 
 #include "trace.h"
 #include "qapi/error.h"
@@ -91,6 +92,21 @@ typedef struct IgbState {
 #define IGB_MMIO_SIZE    (128 * 1024)
 #define IGB_FLASH_SIZE   (128 * 1024)
 #define IGB_IO_SIZE      (32)
+
+
+uint64_t igb_read(PCIDevice *dev, hwaddr addr, unsigned size)
+{
+    IgbState *s = IGB(dev);
+    fprintf(stderr, "igb_read addr: 0x%lx\n", addr);
+    return igb_core_read(&s->core, addr, size);
+}
+
+void igb_write(PCIDevice *dev, hwaddr addr, uint64_t val, unsigned size)
+{
+    IgbState *s = IGB(dev);
+    fprintf(stderr, "igb_write addr: 0x%lx, val: 0x%lx\n", addr, val);
+    igb_core_write(&s->core, addr, val, size);
+}
 
 static void igb_write_config(PCIDevice *d, uint32_t address,
                              uint32_t val, int len)
