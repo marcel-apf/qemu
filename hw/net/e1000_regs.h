@@ -209,6 +209,9 @@
 #define E1000_DTXSWC    0x3500  /* DMA Tx Switch Control; RW */
 #define E1000_WVBR      0x3554  /* VM Wrong Behavior; RC */
 #define E1000_VMVIR     0x3700  /* VM VLAN Insert Register; RW */
+#define E1000_VMOLR     0x5AD0  /* VM Offload; RW */
+#define E1000_RPLOLR    0x5AF0  /* Replication Offload; RW */
+#define E1000_VLVF      0x5D00  /* VLAN VM Filter; RW */
 
 //#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
 //#define E1000_RDBAL1    0x2900
