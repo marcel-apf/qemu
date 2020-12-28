@@ -3275,6 +3275,7 @@ static const readops e1000e_macreg_readops[] = {
     [PFMAILBOX ... PFMAILBOX + 7] = igb_mac_pfmailbox_read,
     [VFMAILBOX ... VFMAILBOX + 7] = igb_mac_vfmailbox_read,
     e1000e_getreg(MBVFICR),
+    [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_readreg,
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
@@ -3633,6 +3634,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [PFMAILBOX ... PFMAILBOX + 7] = igb_set_pfmailbox,
     [VFMAILBOX ... VFMAILBOX + 7] = igb_set_vfmailbox,
     [MBVFICR] = igb_set_mbvficr,
+    [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_writereg,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
