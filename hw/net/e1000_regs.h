@@ -205,6 +205,7 @@
 #define E1000_VFLRE     0x0C88  /* FLR Events; R/W1C */
 #define E1000_VFRE      0x0C8C  /* VF Receive Enable; RW */
 #define E1000_VFTE      0x0C90  /* VF Transmit Enable; RW */
+#define E1000_WVBR      0x3554  /* VM Wrong Behavior; RC */
 
 //#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
 //#define E1000_RDBAL1    0x2900
