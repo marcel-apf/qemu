@@ -3285,6 +3285,9 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(VFLRE),
     e1000e_getreg(VFRE),
     e1000e_getreg(VFTE),
+    e1000e_getreg(QDE),
+    e1000e_getreg(DTXSWC),
+    [VMVIR ... VMVIR + 7] = e1000e_mac_readreg,
     [WVBR] = e1000e_mac_read_clr4,
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
 };
@@ -3649,6 +3652,9 @@ static const writeops e1000e_macreg_writeops[] = {
     [VFLRE] = igb_set_vflre,
     e1000e_putreg(VFRE),
     e1000e_putreg(VFTE),
+    e1000e_putreg(QDE),
+    e1000e_putreg(DTXSWC),
+    [VMVIR ... VMVIR + 7] = e1000e_mac_writereg,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 

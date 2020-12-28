@@ -172,7 +172,7 @@ enum {
 
     defreg(PFMAILBOX),  defreg(VFMAILBOX), defreg(MBVFICR), defreg(VMBMEM),
     defreg(MBVFIMR),    defreg(VFLRE),  defreg(VFRE),   defreg(VFTE),
-    defreg(WVBR),
+    defreg(QDE),        defreg(DTXSWC), defreg(WVBR),   defreg(VMVIR),
 
     idefreg(IVAR),  idefreg(EIAC), idefreg(EITR)
 };
