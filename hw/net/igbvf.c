@@ -19,7 +19,7 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pcie.h"
 #include "hw/pci/msix.h"
-
+#include "igb_common.h"
 #include "trace.h"
 #include "qapi/error.h"
 
@@ -57,17 +57,18 @@ static void igbvf_write_config(PCIDevice *d, uint32_t address, uint32_t val,
 static uint64_t igbvf_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
     IgbVfState *s = opaque;
-    (void)s;
-    //return igb_core_read(&s->core, addr, size);
-    return 0;
+    PCIDevice *pf = pcie_sriov_get_pf(&s->parent_obj);
+
+    return igb_mmio_read(pf, addr, size);
 }
 
 static void igbvf_mmio_write(void *opaque, hwaddr addr,
                            uint64_t val, unsigned size)
 {
     IgbVfState *s = opaque;
-    (void)s;
-    //igb_core_write(&s->core, addr, val, size);
+    PCIDevice *pf = pcie_sriov_get_pf(&s->parent_obj);
+
+    return igb_mmio_write(pf, addr, val, size);
 }
 
 static const MemoryRegionOps mmio_ops = {

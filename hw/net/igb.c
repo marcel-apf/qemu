@@ -49,7 +49,7 @@
 #include "hw/net/igb_regs.h"
 #include "e1000x_common.h"
 #include "igb_core.h"
-
+#include "igb_common.h"
 #include "trace.h"
 #include "qapi/error.h"
 
@@ -105,14 +105,13 @@ static void igb_write_config(PCIDevice *d, uint32_t address,
     }
 }
 
-static uint64_t igb_mmio_read(void *opaque, hwaddr addr, unsigned size)
+uint64_t igb_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
     IgbState *s = opaque;
     return igb_core_read(&s->core, addr, size);
 }
 
-static void igb_mmio_write(void *opaque, hwaddr addr,
-                           uint64_t val, unsigned size)
+void igb_mmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     IgbState *s = opaque;
     igb_core_write(&s->core, addr, val, size);
