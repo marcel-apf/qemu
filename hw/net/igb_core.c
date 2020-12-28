@@ -2130,6 +2130,71 @@ static void igb_set_eims(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
+static void igb_set_pfmailbox(E1000ECore *core, int index, uint32_t val)
+{
+    uint32_t vf_num = index - PFMAILBOX;
+
+    trace_igb_set_pfmailbox(vf_num, val);
+
+    /* Status/Command from PF Ready. */
+    if (!!(val & BIT(0))) {
+        /* Sets the PFSTS bit(4) in VFMailbox. */
+        core->mac[VFMAILBOX + vf_num] |= BIT(4);
+    }
+
+    /* VF Message Received. */
+    if (!!(val & BIT(1))) {
+        /* Sets the PFACK bit(5) in VFMailbox. */
+        core->mac[VFMAILBOX + vf_num] |= BIT(5);
+    }
+
+    /* Buffer Taken by VP (can be set only if the VFU bit(2) is cleared). */
+    if (!!(val & BIT(3)) && !(val & BIT(2))) {
+        core->mac[VFMAILBOX + vf_num] |= BIT(3);
+    }
+
+    /* Reset VFU. */
+    if (!!(val & BIT(4))) {
+        /* Clear the VFU bit(2) in the corresponding VFMailbox. */
+        core->mac[VFMAILBOX + vf_num] &= ~BIT(2);
+        /* Clear the corresponding bits in the MBVFICR VFREQ & VFACK fields.*/
+        core->mac[MBVFICR] &= ~((BIT(vf_num) << 16) | BIT(vf_num));
+    }
+
+    core->mac[index] |= val;
+}
+
+static void igb_set_vfmailbox(E1000ECore *core, int index, uint32_t val)
+{
+    uint32_t vf_num = index - VFMAILBOX;
+
+    trace_igb_set_vfmailbox(vf_num, val);
+
+    val &= (BIT(3) - 1);
+
+    /* Request for PF Ready. */
+    if (!!(val & BIT(0))) {
+        core->mac[MBVFICR] |= BIT(vf_num);
+    }
+
+    /* PF Message Received. */
+    if (!!(val & BIT(1))) {
+        core->mac[MBVFICR] |= (BIT(vf_num) << 16);
+    }
+
+    /* Buffer Taken by VF (can be set only if the PFU bit(3) is cleared). */
+    if (!!(val & BIT(2)) && !(val & BIT(3))) {
+        core->mac[PFMAILBOX + vf_num] |= BIT(2);
+    }
+
+    core->mac[index] |= val;
+}
+
+static void igb_set_mbvficr(E1000ECore *core, int index, uint32_t val)
+{
+    core->mac[MBVFICR] &= ~(val & 0xFF00FF);
+}
+
 static void igb_set_eimc(E1000ECore *core, int index, uint32_t val)
 {
     bool msix = !!(core->mac[GPIE] & IGB_GPIE_MULTIPLE_MSIX);
@@ -2542,6 +2607,29 @@ static uint32_t igb_mac_eitr_read(E1000ECore *core, int index)
 
     /* CNT_INGR (bit 31) is always read as zero. */
     val &= (BIT(31) - 1);
+
+    return val;
+}
+
+static uint32_t igb_mac_pfmailbox_read(E1000ECore *core, int index)
+{
+    uint32_t val = core->mac[index];
+
+    /* STS and ACK (bit 0 and 1) are always read as zero. */
+    val &= 0xFC;
+
+    return val;
+}
+
+static uint32_t igb_mac_vfmailbox_read(E1000ECore *core, int index)
+{
+    uint32_t val = core->mac[index];
+
+    /* REQ and ACK (bit 0 and 1) are always read as zero. */
+    val &= 0xFC;
+
+    /* PFSTS, PFACK and RSTD (bits 4, 5 and 7) are clear after read bits. */
+    core->mac[index] &= 0x4F;
 
     return val;
 }
@@ -3184,7 +3272,10 @@ static const readops e1000e_macreg_readops[] = {
     [EIMS]       = e1000e_mac_readreg,
     [EIAM]       = e1000e_mac_readreg,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_readreg,
-    [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4
+    [PFMAILBOX ... PFMAILBOX + 7] = igb_mac_pfmailbox_read,
+    [VFMAILBOX ... VFMAILBOX + 7] = igb_mac_vfmailbox_read,
+    e1000e_getreg(MBVFICR),
+    [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
 
@@ -3539,6 +3630,9 @@ static const writeops e1000e_macreg_writeops[] = {
     [EIMC] = igb_set_eimc,
     [EIMS] = igb_set_eims,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_writereg,
+    [PFMAILBOX ... PFMAILBOX + 7] = igb_set_pfmailbox,
+    [VFMAILBOX ... VFMAILBOX + 7] = igb_set_vfmailbox,
+    [MBVFICR] = igb_set_mbvficr,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
@@ -3788,6 +3882,8 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [TCTL]          = (0x1 << 3) | (0xF << 4) | (0x40 << 12) | (0x1 << 26) | (0xA << 28),
     [TCTL_EXT]      = 0x40 | (0x42 << 10),
     [DTXCTL]        = (0x1 << 2) | (0x1 << 6),
+
+    [VFMAILBOX ... VFMAILBOX + 7] = BIT(6),
 };
 
 void igb_core_reset(E1000ECore *core)

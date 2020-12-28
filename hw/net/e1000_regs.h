@@ -197,6 +197,10 @@
 #define E1000_TXPBS    0x03404  /* Tx Packet Buffer Size - RW */
 #define E1000_DTXCTL   0x03590  /* DMA TX Control - RW */
 
+#define E1000_PFMAILBOX 0x0C00  /* Physical Function Mailbox; RW */
+#define E1000_VFMAILBOX 0x0C40  /* Virtual Function Mailbox; RW */
+#define E1000_MBVFICR   0x0C80  /* Mailbox VF Interrupt Causes Register; R/W1C */
+
 //#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
 //#define E1000_RDBAL1    0x2900
 #define E1000_RDBAL2    0x2a00
