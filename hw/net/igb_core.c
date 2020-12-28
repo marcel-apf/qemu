@@ -3283,6 +3283,8 @@ static const readops e1000e_macreg_readops[] = {
     [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_readreg,
     e1000e_getreg(MBVFIMR),
     e1000e_getreg(VFLRE),
+    e1000e_getreg(VFRE),
+    e1000e_getreg(VFTE),
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
@@ -3644,6 +3646,8 @@ static const writeops e1000e_macreg_writeops[] = {
     [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_writereg,
     e1000e_putreg(MBVFIMR),
     [VFLRE] = igb_set_vflre,
+    e1000e_putreg(VFRE),
+    e1000e_putreg(VFTE),
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
@@ -3896,6 +3900,8 @@ static const uint32_t e1000e_mac_reg_init[] = {
 
     [VFMAILBOX ... VFMAILBOX + 7] = BIT(6),
     [MBVFIMR]       = 0xFF,
+    [VFRE]          = 0xFF,
+    [VFTE]          = 0xFF,
 };
 
 void igb_core_reset(E1000ECore *core)
