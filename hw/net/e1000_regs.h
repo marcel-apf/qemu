@@ -202,6 +202,7 @@
 #define E1000_MBVFICR   0x0C80  /* Mailbox VF Interrupt Causes Register; R/W1C */
 #define E1000_VMBMEM    0x0800  /* Virtualization Mailbox Memory; RW */
 #define E1000_MBVFIMR   0x0C84  /* Mailbox VF Interrupt Mask; RW */
+#define E1000_VFLRE     0x0C88  /* FLR Events; R/W1C */
 
 //#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
 //#define E1000_RDBAL1    0x2900

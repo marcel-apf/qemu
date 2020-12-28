@@ -171,7 +171,7 @@ enum {
     defreg(TXDCTL12), defreg(TXDCTL13), defreg(TXDCTL14), defreg(TXDCTL15),
 
     defreg(PFMAILBOX),  defreg(VFMAILBOX), defreg(MBVFICR), defreg(VMBMEM),
-    defreg(MBVFIMR),
+    defreg(MBVFIMR),    defreg(VFLRE),
 
     idefreg(IVAR),  idefreg(EIAC), idefreg(EITR)
 };

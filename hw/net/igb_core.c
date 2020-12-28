@@ -2195,6 +2195,11 @@ static void igb_set_mbvficr(E1000ECore *core, int index, uint32_t val)
     core->mac[MBVFICR] &= ~(val & 0xFF00FF);
 }
 
+static void igb_set_vflre(E1000ECore *core, int index, uint32_t val)
+{
+    core->mac[VFLRE] &= ~(val & 0xFF);
+}
+
 static void igb_set_eimc(E1000ECore *core, int index, uint32_t val)
 {
     bool msix = !!(core->mac[GPIE] & IGB_GPIE_MULTIPLE_MSIX);
@@ -3277,6 +3282,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(MBVFICR),
     [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_readreg,
     e1000e_getreg(MBVFIMR),
+    e1000e_getreg(VFLRE),
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
@@ -3637,6 +3643,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [MBVFICR] = igb_set_mbvficr,
     [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_writereg,
     e1000e_putreg(MBVFIMR),
+    [VFLRE] = igb_set_vflre,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
