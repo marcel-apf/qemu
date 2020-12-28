@@ -3285,6 +3285,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(VFLRE),
     e1000e_getreg(VFRE),
     e1000e_getreg(VFTE),
+    [WVBR] = e1000e_mac_read_clr4,
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
