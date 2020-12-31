@@ -175,7 +175,7 @@ enum {
     defreg(QDE),        defreg(DTXSWC), defreg(WVBR),   defreg(VMVIR),
     defreg(VMOLR),      defreg(RPLOLR), defreg(VLVF),
 
-    idefreg(IVAR),  idefreg(EIAC), idefreg(EITR)
+    idefreg(IVAR), idefreg(IVAR_MISC), idefreg(EIAC), idefreg(EITR)
 };
 
 static inline void
