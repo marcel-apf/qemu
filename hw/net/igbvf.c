@@ -19,6 +19,7 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pcie.h"
 #include "hw/pci/msix.h"
+#include "e1000_regs.h"
 #include "igb_common.h"
 #include "trace.h"
 #include "qapi/error.h"
@@ -44,6 +45,99 @@ typedef struct IgbVfState {
 
 } IgbVfState;
 
+static hwaddr igbvf_virt_to_phy(hwaddr addr, uint16_t vfn)
+{
+    switch (addr)
+    {
+        case E1000_CTRL:
+        case 0x0004: /* E1000_CTRL_ALT */
+            return 0x10000 + vfn * 0x100;
+        case E1000_EICS:
+            return 0x10020 + vfn * 0x100;
+        case E1000_EIMS:
+            return 0x10024 + vfn * 0x100;
+        case E1000_EIMC:
+            return 0x10028 + vfn * 0x100;
+        case E1000_EIAC:
+            return 0x1002C + vfn * 0x100;
+        case E1000_EIAM:
+            return 0x10030 + vfn * 0x100;
+        case E1000_EICR:
+            return 0x10080 + vfn * 0x100;
+        case 0x1680:
+        case 0x1684:
+        case 0x1688: /* E1000_EITR 0-2 */
+            return 0x16E0 - (0x1688 - addr) - vfn * 0xC;
+        case 0x1700: /* E1000_IVAR */
+            return 0x1700 + vfn * 4;
+        case 0x1740: /* E1000_IVAR_MISC */
+            return 0x1720 + vfn * 4;
+        case 0x0F04: /* E1000_PBACL */
+            return 0x5B68;
+        case 0x0F0C: /* E1000_PSRTYPE */
+            return 0x5480 + vfn * 4;
+        case E1000_VFMAILBOX:
+            return 0x0C40 + vfn * 4;
+        case 0x0800 ... 0x083F: /* VMBMEM */
+            return addr + vfn * 0x40;
+        case E1000_RDBAL0:
+            return 0xC000 + vfn * 0x40;
+        case E1000_RDBAH0:
+            return 0xC004 + vfn * 0x40;
+        case E1000_RDLEN0:
+            return 0xC008 + vfn * 0x40;
+        case E1000_SRRCTL0:
+            return 0xC00C + vfn * 0x40;
+        case E1000_RDH0:
+            return 0xC010 + vfn * 0x40;
+        case 0x2814: /* E1000_RXCTL0 */
+            return 0xC014 + vfn * 0x40;
+        case E1000_RDT0:
+            return 0xC018 + vfn * 0x40;
+        case E1000_RXDCTL0:
+            return 0xC028 + vfn * 0x40;
+        case 0x2830: /* E1000_RQDPC0 */
+            return 0xC030 + vfn * 0x40;
+        case E1000_TDBAL0:
+            return 0xE000 + vfn * 0x40;
+        case E1000_TDBAH0:
+            return 0xE004 + vfn * 0x40;
+        case E1000_TDLEN0:
+            return 0xE008 + vfn * 0x40;
+        case E1000_TDH0:
+            return 0xE010 + vfn * 0x40;
+        case 0x3814: /* E1000_TXCTL0 */
+            return 0xE014 + vfn * 0x40;
+        case E1000_TDT0:
+            return 0xE018 + vfn * 0x40;
+        case E1000_TXDCTL0:
+            return 0xE028 + vfn * 0x40;
+        case 0x3838: /* E1000_TDWBAL0 */
+            return 0xE038 + vfn * 0x40;
+        case 0x383C: /* E1000_TWBAH0 */
+            return 0xE03C + vfn * 0x40;
+        case E1000_VFGPRC:
+            return 0x10010 + vfn * 0x100;
+        case E1000_VFGPTC:
+            return 0x10014 + vfn * 0x100;
+        case E1000_VFGORC:
+            return 0x10018 + vfn * 0x100;
+        case E1000_VFGOTC:
+            return 0x10034 + vfn * 0x100;
+        case E1000_VFMPRC:
+            return 0x1003C + vfn * 0x100;
+        case E1000_VFGPRLBC:
+            return 0x10040 + vfn * 0x100;
+        case E1000_VFGPTLBC:
+            return 0x10044 + vfn * 0x100;
+        case E1000_VFGORLBC:
+            return 0x10048 + vfn * 0x100;
+        case E1000_VFGOTLBC:
+            return 0x10050 + vfn * 0x100;
+    }
+    return addr;
+}
+
 static void igbvf_write_config(PCIDevice *d, uint32_t address, uint32_t val,
                                int len)
 {
@@ -56,19 +150,23 @@ static void igbvf_write_config(PCIDevice *d, uint32_t address, uint32_t val,
 
 static uint64_t igbvf_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
-    IgbVfState *s = opaque;
-    PCIDevice *pf = pcie_sriov_get_pf(&s->parent_obj);
+    PCIDevice *vf = PCI_DEVICE(opaque);
+    PCIDevice *pf = pcie_sriov_get_pf(vf);
+
+    addr = igbvf_virt_to_phy(addr, pcie_sriov_vf_number(vf));
 
     return igb_mmio_read(pf, addr, size);
 }
 
 static void igbvf_mmio_write(void *opaque, hwaddr addr,
-                           uint64_t val, unsigned size)
+                             uint64_t val, unsigned size)
 {
-    IgbVfState *s = opaque;
-    PCIDevice *pf = pcie_sriov_get_pf(&s->parent_obj);
+    PCIDevice *vf = PCI_DEVICE(opaque);
+    PCIDevice *pf = pcie_sriov_get_pf(vf);
 
-    return igb_mmio_write(pf, addr, val, size);
+    addr = igbvf_virt_to_phy(addr, pcie_sriov_vf_number(vf));
+
+    igb_mmio_write(pf, addr, val, size);
 }
 
 static const MemoryRegionOps mmio_ops = {

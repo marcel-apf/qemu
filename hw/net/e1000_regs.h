@@ -213,6 +213,17 @@
 #define E1000_RPLOLR    0x5AF0  /* Replication Offload; RW */
 #define E1000_VLVF      0x5D00  /* VLAN VM Filter; RW */
 
+/* IGB Statistics Registers */
+#define E1000_VFGPRC    0x00F10 /* Good Packets Received Count */
+#define E1000_VFGPTC    0x00F14 /* Good Packets Transmitted Count */
+#define E1000_VFGORC    0x00F18 /* Good Octets Received Count */
+#define E1000_VFGOTC    0x00F34 /* Good Octets Transmitted Count */
+#define E1000_VFMPRC    0x00F3C /* Multicast Packets Received Count */
+#define E1000_VFGPRLBC  0x00F40 /* Good RX Packets loopback Count */
+#define E1000_VFGPTLBC  0x00F44 /* Good TX packets loopback Count */
+#define E1000_VFGORLBC  0x00F48 /* Good RX Octets loopback Count */
+#define E1000_VFGOTLBC  0x00F50 /* Good TX Octets loopback Count */
+
 //#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
 //#define E1000_RDBAL1    0x2900
 #define E1000_RDBAL2    0x2a00
