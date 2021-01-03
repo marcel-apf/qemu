@@ -2251,6 +2251,62 @@ static void igb_set_eicr(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
+static void igb_set_vtctrl(E1000ECore *core, int index, uint32_t val)
+{
+    if (val & E1000_CTRL_RST) {
+        /* TODO: This bit performs a reset of the queue enable and the
+                 interrupt registers of the VF. */
+    }
+}
+
+static void igb_set_vteics(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTEICS0) / 0x40;
+
+    core->mac[index] = val;
+    igb_set_eics(core, EICS, (val & 0x7) << (22 - vfn*3));
+}
+
+static void igb_set_vteims(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTEIMS0) / 0x40;
+
+    core->mac[index] = val;
+    igb_set_eims(core, EIMS, (val & 0x7) << (22 - vfn*3));
+}
+
+static void igb_set_vteimc(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTEIMC0) / 0x40;
+
+    core->mac[index] = val;
+    igb_set_eimc(core, EIMC, (val & 0x7) << (22 - vfn*3));
+}
+
+static void igb_set_vteiac(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTEIAC0) / 0x40;
+
+    core->mac[index] = val;
+    igb_set_eiac(core, EIAC, (val & 0x7) << (22 - vfn*3));
+}
+
+static void igb_set_vteiam(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTEIAM0) / 0x40;
+
+    core->mac[index] = val;
+    igb_set_eiam(core, EIAM, (val & 0x7) << (22 - vfn*3));
+}
+
+static void igb_set_vteicr(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTEICR0) / 0x40;
+
+    core->mac[index] = val;
+    igb_set_eicr(core, EICR, (val & 0x7) << (22 - vfn*3));
+}
+
 static inline void
 e1000e_autoneg_timer(void *opaque)
 {
@@ -3111,6 +3167,110 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TXDCTL13),
     e1000e_getreg(TXDCTL14),
     e1000e_getreg(TXDCTL15),
+    e1000e_getreg(VTCTRL0),
+    e1000e_getreg(VTCTRL1),
+    e1000e_getreg(VTCTRL2),
+    e1000e_getreg(VTCTRL3),
+    e1000e_getreg(VTCTRL4),
+    e1000e_getreg(VTCTRL5),
+    e1000e_getreg(VTCTRL6),
+    e1000e_getreg(VTCTRL7),
+    e1000e_getreg(VTEIMS0),
+    e1000e_getreg(VTEIMS1),
+    e1000e_getreg(VTEIMS2),
+    e1000e_getreg(VTEIMS3),
+    e1000e_getreg(VTEIMS4),
+    e1000e_getreg(VTEIMS5),
+    e1000e_getreg(VTEIMS6),
+    e1000e_getreg(VTEIMS7),
+    e1000e_getreg(VTEIAC0),
+    e1000e_getreg(VTEIAC1),
+    e1000e_getreg(VTEIAC2),
+    e1000e_getreg(VTEIAC3),
+    e1000e_getreg(VTEIAC4),
+    e1000e_getreg(VTEIAC5),
+    e1000e_getreg(VTEIAC6),
+    e1000e_getreg(VTEIAC7),
+    e1000e_getreg(VTEIAM0),
+    e1000e_getreg(VTEIAM1),
+    e1000e_getreg(VTEIAM2),
+    e1000e_getreg(VTEIAM3),
+    e1000e_getreg(VTEIAM4),
+    e1000e_getreg(VTEIAM5),
+    e1000e_getreg(VTEIAM6),
+    e1000e_getreg(VTEIAM7),
+    e1000e_getreg(VFGPRC0),
+    e1000e_getreg(VFGPRC1),
+    e1000e_getreg(VFGPRC2),
+    e1000e_getreg(VFGPRC3),
+    e1000e_getreg(VFGPRC4),
+    e1000e_getreg(VFGPRC5),
+    e1000e_getreg(VFGPRC6),
+    e1000e_getreg(VFGPRC7),
+    e1000e_getreg(VFGPTC0),
+    e1000e_getreg(VFGPTC1),
+    e1000e_getreg(VFGPTC2),
+    e1000e_getreg(VFGPTC3),
+    e1000e_getreg(VFGPTC4),
+    e1000e_getreg(VFGPTC5),
+    e1000e_getreg(VFGPTC6),
+    e1000e_getreg(VFGPTC7),
+    e1000e_getreg(VFGORC0),
+    e1000e_getreg(VFGORC1),
+    e1000e_getreg(VFGORC2),
+    e1000e_getreg(VFGORC3),
+    e1000e_getreg(VFGORC4),
+    e1000e_getreg(VFGORC5),
+    e1000e_getreg(VFGORC6),
+    e1000e_getreg(VFGORC7),
+    e1000e_getreg(VFGOTC0),
+    e1000e_getreg(VFGOTC1),
+    e1000e_getreg(VFGOTC2),
+    e1000e_getreg(VFGOTC3),
+    e1000e_getreg(VFGOTC4),
+    e1000e_getreg(VFGOTC5),
+    e1000e_getreg(VFGOTC6),
+    e1000e_getreg(VFGOTC7),
+    e1000e_getreg(VFMPRC0),
+    e1000e_getreg(VFMPRC1),
+    e1000e_getreg(VFMPRC2),
+    e1000e_getreg(VFMPRC3),
+    e1000e_getreg(VFMPRC4),
+    e1000e_getreg(VFMPRC5),
+    e1000e_getreg(VFMPRC6),
+    e1000e_getreg(VFMPRC7),
+    e1000e_getreg(VFGPRLBC0),
+    e1000e_getreg(VFGPRLBC1),
+    e1000e_getreg(VFGPRLBC2),
+    e1000e_getreg(VFGPRLBC3),
+    e1000e_getreg(VFGPRLBC4),
+    e1000e_getreg(VFGPRLBC5),
+    e1000e_getreg(VFGPRLBC6),
+    e1000e_getreg(VFGPRLBC7),
+    e1000e_getreg(VFGPTLBC0),
+    e1000e_getreg(VFGPTLBC1),
+    e1000e_getreg(VFGPTLBC2),
+    e1000e_getreg(VFGPTLBC3),
+    e1000e_getreg(VFGPTLBC4),
+    e1000e_getreg(VFGPTLBC5),
+    e1000e_getreg(VFGPTLBC6),
+    e1000e_getreg(VFGPTLBC7),
+    e1000e_getreg(VFGORLBC0),
+    e1000e_getreg(VFGORLBC1),
+    e1000e_getreg(VFGORLBC2),
+    e1000e_getreg(VFGORLBC3),
+    e1000e_getreg(VFGORLBC4),
+    e1000e_getreg(VFGORLBC5),
+    e1000e_getreg(VFGORLBC6),
+    e1000e_getreg(VFGORLBC7),
+    e1000e_getreg(VFGOTLBC0),
+    e1000e_getreg(VFGOTLBC1),
+    e1000e_getreg(VFGOTLBC2),
+    e1000e_getreg(VFGOTLBC3),
+    e1000e_getreg(VFGOTLBC4),
+    e1000e_getreg(VFGOTLBC5),
+    e1000e_getreg(VFGOTLBC6),
+    e1000e_getreg(VFGOTLBC7),
     e1000e_getreg(RCTL),
     e1000e_getreg(MDIC),
     e1000e_getreg(FCRUC),
@@ -3266,6 +3426,14 @@ static const readops e1000e_macreg_readops[] = {
     [RSSRK ... RSSRK + 31] = e1000e_mac_readreg,
     [MAVTV0 ... MAVTV3]    = e1000e_mac_readreg,
     [I_EITR ... I_EITR + IGB_MSIX_VEC_NUM - 1] = igb_mac_eitr_read,
+    [VTEICR0] = e1000e_mac_read_clr4,
+    [VTEICR1] = e1000e_mac_read_clr4,
+    [VTEICR2] = e1000e_mac_read_clr4,
+    [VTEICR3] = e1000e_mac_read_clr4,
+    [VTEICR4] = e1000e_mac_read_clr4,
+    [VTEICR5] = e1000e_mac_read_clr4,
+    [VTEICR6] = e1000e_mac_read_clr4,
+    [VTEICR7] = e1000e_mac_read_clr4,
 
     /* IGB specific - should go in a disjoint struct
      * but put here now just to make diffs easier:
@@ -3663,6 +3831,62 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(VLVF),
     [VMVIR ... VMVIR + 7] = e1000e_mac_writereg,
     [VMOLR ... VMOLR + 7] = e1000e_mac_writereg,
+    [VTCTRL0] = igb_set_vtctrl,
+    [VTCTRL1] = igb_set_vtctrl,
+    [VTCTRL2] = igb_set_vtctrl,
+    [VTCTRL3] = igb_set_vtctrl,
+    [VTCTRL4] = igb_set_vtctrl,
+    [VTCTRL5] = igb_set_vtctrl,
+    [VTCTRL6] = igb_set_vtctrl,
+    [VTCTRL7] = igb_set_vtctrl,
+    [VTEICS0] = igb_set_vteics,
+    [VTEICS1] = igb_set_vteics,
+    [VTEICS2] = igb_set_vteics,
+    [VTEICS3] = igb_set_vteics,
+    [VTEICS4] = igb_set_vteics,
+    [VTEICS5] = igb_set_vteics,
+    [VTEICS6] = igb_set_vteics,
+    [VTEICS7] = igb_set_vteics,
+    [VTEIMS0] = igb_set_vteims,
+    [VTEIMS1] = igb_set_vteims,
+    [VTEIMS2] = igb_set_vteims,
+    [VTEIMS3] = igb_set_vteims,
+    [VTEIMS4] = igb_set_vteims,
+    [VTEIMS5] = igb_set_vteims,
+    [VTEIMS6] = igb_set_vteims,
+    [VTEIMS7] = igb_set_vteims,
+    [VTEIMC0] = igb_set_vteimc,
+    [VTEIMC1] = igb_set_vteimc,
+    [VTEIMC2] = igb_set_vteimc,
+    [VTEIMC3] = igb_set_vteimc,
+    [VTEIMC4] = igb_set_vteimc,
+    [VTEIMC5] = igb_set_vteimc,
+    [VTEIMC6] = igb_set_vteimc,
+    [VTEIMC7] = igb_set_vteimc,
+    [VTEIAC0] = igb_set_vteiac,
+    [VTEIAC1] = igb_set_vteiac,
+    [VTEIAC2] = igb_set_vteiac,
+    [VTEIAC3] = igb_set_vteiac,
+    [VTEIAC4] = igb_set_vteiac,
+    [VTEIAC5] = igb_set_vteiac,
+    [VTEIAC6] = igb_set_vteiac,
+    [VTEIAC7] = igb_set_vteiac,
+    [VTEIAM0] = igb_set_vteiam,
+    [VTEIAM1] = igb_set_vteiam,
+    [VTEIAM2] = igb_set_vteiam,
+    [VTEIAM3] = igb_set_vteiam,
+    [VTEIAM4] = igb_set_vteiam,
+    [VTEIAM5] = igb_set_vteiam,
+    [VTEIAM6] = igb_set_vteiam,
+    [VTEIAM7] = igb_set_vteiam,
+    [VTEICR0] = igb_set_vteicr,
+    [VTEICR1] = igb_set_vteicr,
+    [VTEICR2] = igb_set_vteicr,
+    [VTEICR3] = igb_set_vteicr,
+    [VTEICR4] = igb_set_vteicr,
+    [VTEICR5] = igb_set_vteicr,
+    [VTEICR6] = igb_set_vteicr,
+    [VTEICR7] = igb_set_vteicr,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 

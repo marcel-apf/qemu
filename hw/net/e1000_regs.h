@@ -445,6 +445,150 @@
 #define E1000_TXDCTL14  0xe3a8
 #define E1000_TXDCTL15  0xe3e8
 
+#define E1000_VTCTRL0   0x10000 /* Mirror VF Control (only RST bit); RW */
+#define E1000_VTCTRL1   0x10100
+#define E1000_VTCTRL2   0x10200
+#define E1000_VTCTRL3   0x10300
+#define E1000_VTCTRL4   0x10400
+#define E1000_VTCTRL5   0x10500
+#define E1000_VTCTRL6   0x10600
+#define E1000_VTCTRL7   0x10700
+
+#define E1000_VTEICS0   0x10020 /* Mirror Extended Interrupt Cause Set; WO */
+#define E1000_VTEICS1   0x10120
+#define E1000_VTEICS2   0x10220
+#define E1000_VTEICS3   0x10320
+#define E1000_VTEICS4   0x10420
+#define E1000_VTEICS5   0x10520
+#define E1000_VTEICS6   0x10620
+#define E1000_VTEICS7   0x10720
+
+#define E1000_VTEIMS0   0x10024 /* Mirror Extended Interrupt Mask Set/Read; RW */
+#define E1000_VTEIMS1   0x10124
+#define E1000_VTEIMS2   0x10224
+#define E1000_VTEIMS3   0x10324
+#define E1000_VTEIMS4   0x10424
+#define E1000_VTEIMS5   0x10524
+#define E1000_VTEIMS6   0x10624
+#define E1000_VTEIMS7   0x10724
+
+#define E1000_VTEIMC0   0x10028 /* Mirror Extended Interrupt Mask Clear; WO */
+#define E1000_VTEIMC1   0x10128
+#define E1000_VTEIMC2   0x10228
+#define E1000_VTEIMC3   0x10328
+#define E1000_VTEIMC4   0x10428
+#define E1000_VTEIMC5   0x10528
+#define E1000_VTEIMC6   0x10628
+#define E1000_VTEIMC7   0x10728
+
+#define E1000_VTEIAC0   0x1002C /* Mirror Extended Interrupt Auto Clear; RW */
+#define E1000_VTEIAC1   0x1012C
+#define E1000_VTEIAC2   0x1022C
+#define E1000_VTEIAC3   0x1032C
+#define E1000_VTEIAC4   0x1042C
+#define E1000_VTEIAC5   0x1052C
+#define E1000_VTEIAC6   0x1062C
+#define E1000_VTEIAC7   0x1072C
+
+#define E1000_VTEIAM0   0x10030 /* Mirror Extended Interrupt Auto Mask Enable; RW */
+#define E1000_VTEIAM1   0x10130
+#define E1000_VTEIAM2   0x10230
+#define E1000_VTEIAM3   0x10330
+#define E1000_VTEIAM4   0x10430
+#define E1000_VTEIAM5   0x10530
+#define E1000_VTEIAM6   0x10630
+#define E1000_VTEIAM7   0x10730
+
+#define E1000_VTEICR0   0x10080 /* Mirror Extended Interrupt Cause Set; RC/W1C */
+#define E1000_VTEICR1   0x10180
+#define E1000_VTEICR2   0x10280
+#define E1000_VTEICR3   0x10380
+#define E1000_VTEICR4   0x10480
+#define E1000_VTEICR5   0x10580
+#define E1000_VTEICR6   0x10680
+#define E1000_VTEICR7   0x10780
+
+#define E1000_VFGPRC0   0x10010 /* Mirror Good Packets Received Count; RO */
+#define E1000_VFGPRC1   0x10110
+#define E1000_VFGPRC2   0x10210
+#define E1000_VFGPRC3   0x10310
+#define E1000_VFGPRC4   0x10410
+#define E1000_VFGPRC5   0x10510
+#define E1000_VFGPRC6   0x10610
+#define E1000_VFGPRC7   0x10710
+
+#define E1000_VFGPTC0   0x10014 /* Mirror Good Packets Transmitted Count; RO */
+#define E1000_VFGPTC1   0x10114
+#define E1000_VFGPTC2   0x10214
+#define E1000_VFGPTC3   0x10314
+#define E1000_VFGPTC4   0x10414
+#define E1000_VFGPTC5   0x10514
+#define E1000_VFGPTC6   0x10614
+#define E1000_VFGPTC7   0x10714
+
+#define E1000_VFGORC0   0x10018 /* Mirror Good Octets Received Count; RO */
+#define E1000_VFGORC1   0x10118
+#define E1000_VFGORC2   0x10218
+#define E1000_VFGORC3   0x10318
+#define E1000_VFGORC4   0x10418
+#define E1000_VFGORC5   0x10518
+#define E1000_VFGORC6   0x10618
+#define E1000_VFGORC7   0x10718
+
+#define E1000_VFGOTC0   0x10034 /* Mirror Good Octets Transmitted Count; RO */
+#define E1000_VFGOTC1   0x10134
+#define E1000_VFGOTC2   0x10234
+#define E1000_VFGOTC3   0x10334
+#define E1000_VFGOTC4   0x10434
+#define E1000_VFGOTC5   0x10534
+#define E1000_VFGOTC6   0x10634
+#define E1000_VFGOTC7   0x10734
+
+#define E1000_VFMPRC0   0x1003C /* Mirror Multicast Packets Received Count; RO */
+#define E1000_VFMPRC1   0x1013C
+#define E1000_VFMPRC2   0x1023C
+#define E1000_VFMPRC3   0x1033C
+#define E1000_VFMPRC4   0x1043C
+#define E1000_VFMPRC5   0x1053C
+#define E1000_VFMPRC6   0x1063C
+#define E1000_VFMPRC7   0x1073C
+
+#define E1000_VFGPRLBC0 0x10040 /* Mirror Good RX Packets loopback Count; RO */
+#define E1000_VFGPRLBC1 0x10140
+#define E1000_VFGPRLBC2 0x10240
+#define E1000_VFGPRLBC3 0x10340
+#define E1000_VFGPRLBC4 0x10440
+#define E1000_VFGPRLBC5 0x10540
+#define E1000_VFGPRLBC6 0x10640
+#define E1000_VFGPRLBC7 0x10740
+
+#define E1000_VFGPTLBC0 0x10044 /* Mirror Good TX packets loopback Count; RO */
+#define E1000_VFGPTLBC1 0x10144
+#define E1000_VFGPTLBC2 0x10244
+#define E1000_VFGPTLBC3 0x10344
+#define E1000_VFGPTLBC4 0x10444
+#define E1000_VFGPTLBC5 0x10544
+#define E1000_VFGPTLBC6 0x10644
+#define E1000_VFGPTLBC7 0x10744
+
+#define E1000_VFGORLBC0 0x10048 /* Mirror Good RX Octets loopback Count; RO */
+#define E1000_VFGORLBC1 0x10148
+#define E1000_VFGORLBC2 0x10248
+#define E1000_VFGORLBC3 0x10348
+#define E1000_VFGORLBC4 0x10448
+#define E1000_VFGORLBC5 0x10548
+#define E1000_VFGORLBC6 0x10648
+#define E1000_VFGORLBC7 0x10748
+
+#define E1000_VFGOTLBC0 0x10050 /* Mirror Good TX Octets loopback Count; RO */
+#define E1000_VFGOTLBC1 0x10150
+#define E1000_VFGOTLBC2 0x10250
+#define E1000_VFGOTLBC3 0x10350
+#define E1000_VFGOTLBC4 0x10450
+#define E1000_VFGOTLBC5 0x10550
+#define E1000_VFGOTLBC6 0x10650
+#define E1000_VFGOTLBC7 0x10750
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */
