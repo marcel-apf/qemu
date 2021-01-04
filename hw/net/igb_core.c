@@ -2130,64 +2130,80 @@ static void igb_set_eims(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
+static void mailbox_interrupt_to_vf(E1000ECore *core, uint16_t vfn)
+{
+    //vector = core->mac[VTIVAR_MISC + vf_num];
+    PCIDevice *vf = pcie_sriov_get_vf(core->owner, vfn);
+
+fprintf(stderr, "mailbox_interrupt_to_vf: vfn: %u name: %s\n", vfn, vf->name);
+
+    core->mac[EICR] = (BIT(2) & 0x7) << (22 - vfn*3);
+    igb_update_interrupt_state(core);
+    //msix_notify(vf, 2);
+}
+
+static void mailbox_interrupt_to_pf(E1000ECore *core)
+{
+    e1000e_set_interrupt_cause(core, IGB_INT_VMMB);
+}
+
 static void igb_set_pfmailbox(E1000ECore *core, int index, uint32_t val)
 {
-    uint32_t vf_num = index - PFMAILBOX;
+    uint16_t vfn = index - PFMAILBOX;
 
-    trace_igb_set_pfmailbox(vf_num, val);
+    trace_igb_set_pfmailbox(vfn, val);
 
-    /* Status/Command from PF Ready. */
-    if (!!(val & BIT(0))) {
-        /* Sets the PFSTS bit(4) in VFMailbox. */
-        core->mac[VFMAILBOX + vf_num] |= BIT(4);
+    if (val & E1000_PFMAILBOX_STS) {
+        core->mac[VFMAILBOX + vfn] |= E1000_VFMAILBOX_PF_STS;
+        mailbox_interrupt_to_vf(core, vfn);
     }
 
-    /* VF Message Received. */
-    if (!!(val & BIT(1))) {
-        /* Sets the PFACK bit(5) in VFMailbox. */
-        core->mac[VFMAILBOX + vf_num] |= BIT(5);
+    if (val & E1000_PFMAILBOX_ACK) {
+        core->mac[VFMAILBOX + vfn] |= E1000_VFMAILBOX_PF_ACK;
+        mailbox_interrupt_to_vf(core, vfn);
     }
 
-    /* Buffer Taken by VP (can be set only if the VFU bit(2) is cleared). */
-    if (!!(val & BIT(3)) && !(val & BIT(2))) {
-        core->mac[VFMAILBOX + vf_num] |= BIT(3);
+    /* Buffer Taken by PF (can be set only if the VFU is cleared). */
+    if ((val & E1000_PFMAILBOX_PFU) && !(val & E1000_PFMAILBOX_VFU)) {
+        core->mac[VFMAILBOX + vfn] |= E1000_VFMAILBOX_PFU;
+    } else {
+        val &= ~E1000_PFMAILBOX_PFU;
     }
 
-    /* Reset VFU. */
-    if (!!(val & BIT(4))) {
-        /* Clear the VFU bit(2) in the corresponding VFMailbox. */
-        core->mac[VFMAILBOX + vf_num] &= ~BIT(2);
-        /* Clear the corresponding bits in the MBVFICR VFREQ & VFACK fields.*/
-        core->mac[MBVFICR] &= ~((BIT(vf_num) << 16) | BIT(vf_num));
+    if (val & E1000_PFMAILBOX_RVFU) {
+        core->mac[VFMAILBOX + vfn] &= ~E1000_VFMAILBOX_VFU;
+        core->mac[MBVFICR] &= ~((BIT(vfn) << 16) | BIT(vfn));
     }
 
-    core->mac[index] |= val;
+    core->mac[index] = val;
 }
 
 static void igb_set_vfmailbox(E1000ECore *core, int index, uint32_t val)
 {
-    uint32_t vf_num = index - VFMAILBOX;
+    uint16_t vfn = index - VFMAILBOX;
 
-    trace_igb_set_vfmailbox(vf_num, val);
+    trace_igb_set_vfmailbox(vfn, val);
 
     val &= (BIT(3) - 1);
 
-    /* Request for PF Ready. */
-    if (!!(val & BIT(0))) {
-        core->mac[MBVFICR] |= BIT(vf_num);
+    if (val & E1000_VFMAILBOX_REQ) {
+        core->mac[MBVFICR] |= BIT(vfn);
+        mailbox_interrupt_to_pf(core);
     }
 
-    /* PF Message Received. */
-    if (!!(val & BIT(1))) {
-        core->mac[MBVFICR] |= (BIT(vf_num) << 16);
+    if (val & E1000_VFMAILBOX_ACK) {
+        core->mac[MBVFICR] |= (BIT(vfn) << 16);
+        mailbox_interrupt_to_pf(core);
     }
 
-    /* Buffer Taken by VF (can be set only if the PFU bit(3) is cleared). */
-    if (!!(val & BIT(2)) && !(val & BIT(3))) {
-        core->mac[PFMAILBOX + vf_num] |= BIT(2);
+    /* Buffer Taken by VF (can be set only if the PFU is cleared). */
+    if ((val & E1000_VFMAILBOX_VFU) && !(val & E1000_VFMAILBOX_PFU)) {
+        core->mac[PFMAILBOX + vfn] |= E1000_PFMAILBOX_VFU;
+    } else {
+        val &= ~E1000_VFMAILBOX_VFU;
     }
 
-    core->mac[index] |= val;
+    core->mac[index] = val;
 }
 
 static void igb_set_mbvficr(E1000ECore *core, int index, uint32_t val)
@@ -3446,10 +3462,10 @@ static const readops e1000e_macreg_readops[] = {
     [EIAM]       = e1000e_mac_readreg,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_readreg,
     e1000e_getreg(I_IVAR_MISC),
-    [PFMAILBOX ... PFMAILBOX + 7] = igb_mac_pfmailbox_read,
-    [VFMAILBOX ... VFMAILBOX + 7] = igb_mac_vfmailbox_read,
+    [PFMAILBOX ... PFMAILBOX + 28] = igb_mac_pfmailbox_read,
+    [VFMAILBOX ... VFMAILBOX + 28] = igb_mac_vfmailbox_read,
     e1000e_getreg(MBVFICR),
-    [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_readreg,
+    [VMBMEM ... VMBMEM + 64] = e1000e_mac_readreg,
     e1000e_getreg(MBVFIMR),
     e1000e_getreg(VFLRE),
     e1000e_getreg(VFRE),
@@ -3817,10 +3833,10 @@ static const writeops e1000e_macreg_writeops[] = {
     [EIMS] = igb_set_eims,
     [I_IVAR ... I_IVAR + 32] = e1000e_mac_writereg,
     e1000e_putreg(I_IVAR_MISC),
-    [PFMAILBOX ... PFMAILBOX + 7] = igb_set_pfmailbox,
-    [VFMAILBOX ... VFMAILBOX + 7] = igb_set_vfmailbox,
+    [PFMAILBOX ... PFMAILBOX + 28] = igb_set_pfmailbox,
+    [VFMAILBOX ... VFMAILBOX + 28] = igb_set_vfmailbox,
     [MBVFICR] = igb_set_mbvficr,
-    [VMBMEM ... VMBMEM + 64*7] = e1000e_mac_writereg,
+    [VMBMEM ... VMBMEM + 64] = e1000e_mac_writereg,
     e1000e_putreg(MBVFIMR),
     [VFLRE] = igb_set_vflre,
     e1000e_putreg(VFRE),
@@ -4137,7 +4153,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [TCTL_EXT]      = 0x40 | (0x42 << 10),
     [DTXCTL]        = (0x1 << 2) | (0x1 << 6),
 
-    [VFMAILBOX ... VFMAILBOX + 7] = BIT(6),
+    [VFMAILBOX ... VFMAILBOX + 28] = BIT(6),
     [MBVFIMR]       = 0xFF,
     [VFRE]          = 0xFF,
     [VFTE]          = 0xFF,

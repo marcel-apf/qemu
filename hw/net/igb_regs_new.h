@@ -81,4 +81,23 @@
 #define IGB_XDBAL_MASK  (~(BIT(7) - 1)) /* TDBAL and RDBAL Registers Mask */
 #define IGB_TDT_MASK    0xFFFF          /* Transmit Descriptor Tail Mask */
 
+/* Physical Function Mailbox */
+
+#define E1000_PFMAILBOX_STS     0x00000001 /* Status/Command from PF Ready */
+#define E1000_PFMAILBOX_ACK     0x00000002 /* VF Message Received */
+#define E1000_PFMAILBOX_VFU     0x00000004 /* Buffer Taken by VF */
+#define E1000_PFMAILBOX_PFU     0x00000008 /* Buffer Taken by PF */
+#define E1000_PFMAILBOX_RVFU    0x00000010 /* Reset VFU  */
+
+/* Virtual Function Mailbox */
+
+#define E1000_VFMAILBOX_REQ     0x00000001 /* Request for PF Ready */
+#define E1000_VFMAILBOX_ACK     0x00000002 /* PF Message Received */
+#define E1000_VFMAILBOX_VFU     0x00000004 /* Buffer Taken by VF */
+#define E1000_VFMAILBOX_PFU     0x00000008 /* Buffer Taken by PF */
+#define E1000_VFMAILBOX_PF_STS  0x00000010 /* PF wrote a message in the mailbox */
+#define E1000_VFMAILBOX_PF_ACK  0x00000020 /* PF acknowledged the VF previous message */
+#define E1000_VFMAILBOX_RSTI    0x00000040 /* PF had reset the shared resources */
+#define E1000_VFMAILBOX_RSTD    0x00000080 /* PF software reset completed */
+
 #endif // HW_IGB_REGS_H
