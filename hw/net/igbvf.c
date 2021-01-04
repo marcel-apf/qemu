@@ -58,7 +58,7 @@ static hwaddr igbvf_virt_to_phy(hwaddr addr, uint16_t vfn)
             return 0x10024 + vfn * 0x100;
         case E1000_EIMC:
             return 0x10028 + vfn * 0x100;
-        case E1000_EIAC:
+        case 0x152C: /* E1000_EIAC */
             return 0x1002C + vfn * 0x100;
         case E1000_EIAM:
             return 0x10030 + vfn * 0x100;
