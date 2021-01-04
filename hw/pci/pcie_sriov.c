@@ -285,3 +285,16 @@ PCIDevice *pcie_sriov_get_pf(PCIDevice *dev)
 {
     return dev->exp.sriov_vf.pf;
 }
+
+PCIDevice *pcie_sriov_get_vf(PCIDevice *dev, uint16_t vfn)
+{
+    if (vfn > dev->exp.sriov_pf.num_vfs) {
+        return NULL;
+    }
+    return dev->exp.sriov_pf.vf[vfn];
+}
+
+bool pcie_sriov_is_iov(PCIDevice *dev)
+{
+    return dev->exp.sriov_pf.num_vfs > 0;
+}
