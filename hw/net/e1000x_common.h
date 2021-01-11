@@ -25,8 +25,6 @@
 #ifndef HW_NET_E1000X_COMMON_H
 #define HW_NET_E1000X_COMMON_H
 
-#include "e1000_regs.h"
-
 /* Offload Context Descriptor */
 struct e1000_context_desc {
     union {

@@ -179,416 +179,6 @@
 #define E1000_FLSWCNT  0x01038  /* FLASH Access Counter */
 #define E1000_FLOP     0x0103C  /* FLASH Opcode Register */
 #define E1000_FLOL     0x01050  /* FEEP Auto Load */
-
-/* IGB specific section: */
-#define E1000_GPIE     0x01514  /* General Purpose Interrupt Enable; RW */
-#define E1000_EICS     0x01520  /* Ext. Interrupt Cause Set - W0 */
-#define E1000_EIMS     0x01524  /* Ext. Interrupt Mask Set/Read - RW */
-#define E1000_EIMC     0x01528  /* Ext. Interrupt Mask Clear - WO */
-#define E1000_EIAM     0x01530  /* Ext. Interrupt Ack Auto Clear Mask - RW */
-#define E1000_EICR     0x01580  /* Ext. Interrupt Cause Read - R/clr */
-#define E1000_RXPBS    0x02404  /* RX packet buffer size - RW */
-#define E1000_RQDPC    0x0C030  /* Rx Queue drop packet - RC */
-#define IGB_IVAR       0x01700  /* Interrupt Vector Allocation Register (1st) - RW */
-#define IGB_IVAR_MISC  0x01740  /* Interrupt Vector Allocation Register (last) - RW */
-#define IGB_EIAC       0x0152C  /* Extended Interrupt Auto Clear - RW */
-#define IGB_EITR       0x01680  /* Interrupt Throttle - RW */
-
-#define E1000_TXPBS    0x03404  /* Tx Packet Buffer Size - RW */
-#define E1000_DTXCTL   0x03590  /* DMA TX Control - RW */
-
-#define E1000_PFMAILBOX 0x0C00  /* Physical Function Mailbox; RW */
-#define E1000_VFMAILBOX 0x0C40  /* Virtual Function Mailbox; RW */
-#define E1000_MBVFICR   0x0C80  /* Mailbox VF Interrupt Causes Register; R/W1C */
-#define E1000_VMBMEM    0x0800  /* Virtualization Mailbox Memory; RW */
-#define E1000_MBVFIMR   0x0C84  /* Mailbox VF Interrupt Mask; RW */
-#define E1000_VFLRE     0x0C88  /* FLR Events; R/W1C */
-#define E1000_VFRE      0x0C8C  /* VF Receive Enable; RW */
-#define E1000_VFTE      0x0C90  /* VF Transmit Enable; RW */
-#define E1000_QDE       0x2408  /* Queue Drop Enable; RW */
-#define E1000_DTXSWC    0x3500  /* DMA Tx Switch Control; RW */
-#define E1000_WVBR      0x3554  /* VM Wrong Behavior; RC */
-#define E1000_VMVIR     0x3700  /* VM VLAN Insert Register; RW */
-#define E1000_VMOLR     0x5AD0  /* VM Offload; RW */
-#define E1000_RPLOLR    0x5AF0  /* Replication Offload; RW */
-#define E1000_VLVF      0x5D00  /* VLAN VM Filter; RW */
-
-/* IGB Statistics Registers */
-#define E1000_VFGPRC    0x00F10 /* Good Packets Received Count */
-#define E1000_VFGPTC    0x00F14 /* Good Packets Transmitted Count */
-#define E1000_VFGORC    0x00F18 /* Good Octets Received Count */
-#define E1000_VFGOTC    0x00F34 /* Good Octets Transmitted Count */
-#define E1000_VFMPRC    0x00F3C /* Multicast Packets Received Count */
-#define E1000_VFGPRLBC  0x00F40 /* Good RX Packets loopback Count */
-#define E1000_VFGPTLBC  0x00F44 /* Good TX packets loopback Count */
-#define E1000_VFGORLBC  0x00F48 /* Good RX Octets loopback Count */
-#define E1000_VFGOTLBC  0x00F50 /* Good TX Octets loopback Count */
-
-//#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
-//#define E1000_RDBAL1    0x2900
-#define E1000_RDBAL2    0x2a00
-#define E1000_RDBAL3    0x2b00
-#define E1000_RDBAL4    0xc100
-#define E1000_RDBAL5    0xc140
-#define E1000_RDBAL6    0xc180
-#define E1000_RDBAL7    0xc1c0
-#define E1000_RDBAL8    0xc200
-#define E1000_RDBAL9    0xc240
-#define E1000_RDBAL10   0xc280
-#define E1000_RDBAL11   0xc2c0
-#define E1000_RDBAL12   0xc300
-#define E1000_RDBAL13   0xc340
-#define E1000_RDBAL14   0xc380
-#define E1000_RDBAL15   0xc3c0
-
-//#define E1000_RDBAH0    0x2804  /* RX Descriptor Base High - RW */
-//#define E1000_RDBAH1    0x2904
-#define E1000_RDBAH2    0x2a04
-#define E1000_RDBAH3    0x2b04
-#define E1000_RDBAH4    0xc104
-#define E1000_RDBAH5    0xc144
-#define E1000_RDBAH6    0xc184
-#define E1000_RDBAH7    0xc1c4
-#define E1000_RDBAH8    0xc204
-#define E1000_RDBAH9    0xc244
-#define E1000_RDBAH10   0xc284
-#define E1000_RDBAH11   0xc2c4
-#define E1000_RDBAH12   0xc304
-#define E1000_RDBAH13   0xc344
-#define E1000_RDBAH14   0xc384
-#define E1000_RDBAH15   0xc3c4
-
-//#define E1000_RDLEN0    0x2808  /* RX Descriptor Ring Length - RW */
-//#define E1000_RDLEN1    0x2908
-#define E1000_RDLEN2    0x2a08
-#define E1000_RDLEN3    0x2b08
-#define E1000_RDLEN4    0xc108
-#define E1000_RDLEN5    0xc148
-#define E1000_RDLEN6    0xc188
-#define E1000_RDLEN7    0xc1c8
-#define E1000_RDLEN8    0xc208
-#define E1000_RDLEN9    0xc248
-#define E1000_RDLEN10   0xc288
-#define E1000_RDLEN11   0xc2c8
-#define E1000_RDLEN12   0xc308
-#define E1000_RDLEN13   0xc348
-#define E1000_RDLEN14   0xc388
-#define E1000_RDLEN15   0xc3c8
-
-#define E1000_SRRCTL0   0x280c  /* Split and Replication Receive Control - RW */
-#define E1000_SRRCTL1   0x290c
-#define E1000_SRRCTL2   0x2a0c
-#define E1000_SRRCTL3   0x2b0c
-#define E1000_SRRCTL4   0xc10c
-#define E1000_SRRCTL5   0xc14c
-#define E1000_SRRCTL6   0xc18c
-#define E1000_SRRCTL7   0xc1cc
-#define E1000_SRRCTL8   0xc20c
-#define E1000_SRRCTL9   0xc24c
-#define E1000_SRRCTL10  0xc28c
-#define E1000_SRRCTL11  0xc2cc
-#define E1000_SRRCTL12  0xc30c
-#define E1000_SRRCTL13  0xc34c
-#define E1000_SRRCTL14  0xc38c
-#define E1000_SRRCTL15  0xc3cc
-
-//#define E1000_RDH0  0x2810  /* RX Descriptor Head - RW */
-//#define E1000_RDH1  0x2910
-#define E1000_RDH2  0x2a10
-#define E1000_RDH3  0x2b10
-#define E1000_RDH4  0xc110
-#define E1000_RDH5  0xc150
-#define E1000_RDH6  0xc190
-#define E1000_RDH7  0xc1d0
-#define E1000_RDH8  0xc210
-#define E1000_RDH9  0xc250
-#define E1000_RDH10 0xc290
-#define E1000_RDH11 0xc2d0
-#define E1000_RDH12 0xc310
-#define E1000_RDH13 0xc350
-#define E1000_RDH14 0xc390
-#define E1000_RDH15 0xc3d0
-
-//#define E1000_RDT0  0x2818  /* RX Descriptor Tail - RW */
-//#define E1000_RDT1  0x2918
-#define E1000_RDT2  0x2a18
-#define E1000_RDT3  0x2b18
-#define E1000_RDT4  0xc118
-#define E1000_RDT5  0xc158
-#define E1000_RDT6  0xc198
-#define E1000_RDT7  0xc1d8
-#define E1000_RDT8  0xc218
-#define E1000_RDT9  0xc258
-#define E1000_RDT10 0xc298
-#define E1000_RDT11 0xc2d8
-#define E1000_RDT12 0xc318
-#define E1000_RDT13 0xc358
-#define E1000_RDT14 0xc398
-#define E1000_RDT15 0xc3d8
-
-#define E1000_RXDCTL0   0x2828  /* Receive Descriptor Control */
-//#define E1000_RXDCTL1   0x2928
-#define E1000_RXDCTL2   0x2a28
-#define E1000_RXDCTL3   0x2b28
-#define E1000_RXDCTL4   0xc128
-#define E1000_RXDCTL5   0xc168
-#define E1000_RXDCTL6   0xc1a8
-#define E1000_RXDCTL7   0xc1e8
-#define E1000_RXDCTL8   0xc228
-#define E1000_RXDCTL9   0xc268
-#define E1000_RXDCTL10  0xc2a8
-#define E1000_RXDCTL11  0xc2e8
-#define E1000_RXDCTL12  0xc328
-#define E1000_RXDCTL13  0xc368
-#define E1000_RXDCTL14  0xc3a8
-#define E1000_RXDCTL15  0xc3e8
-
-#define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
-//#define E1000_TDBAL1    0x3900
-#define E1000_TDBAL2    0x3a00
-#define E1000_TDBAL3    0x3b00
-#define E1000_TDBAL4    0xe100
-#define E1000_TDBAL5    0xe140
-#define E1000_TDBAL6    0xe180
-#define E1000_TDBAL7    0xe1c0
-#define E1000_TDBAL8    0xe200
-#define E1000_TDBAL9    0xe240
-#define E1000_TDBAL10   0xe280
-#define E1000_TDBAL11   0xe2c0
-#define E1000_TDBAL12   0xe300
-#define E1000_TDBAL13   0xe340
-#define E1000_TDBAL14   0xe380
-#define E1000_TDBAL15   0xe3c0
-
-#define E1000_TDBAH0    0x3804  /* Transmit Descriptor Base Address High - RW */
-//#define E1000_TDBAH1    0x3904
-#define E1000_TDBAH2    0x3a04
-#define E1000_TDBAH3    0x3b04
-#define E1000_TDBAH4    0xe104
-#define E1000_TDBAH5    0xe144
-#define E1000_TDBAH6    0xe184
-#define E1000_TDBAH7    0xe1c4
-#define E1000_TDBAH8    0xe204
-#define E1000_TDBAH9    0xe244
-#define E1000_TDBAH10   0xe284
-#define E1000_TDBAH11   0xe2c4
-#define E1000_TDBAH12   0xe304
-#define E1000_TDBAH13   0xe344
-#define E1000_TDBAH14   0xe384
-#define E1000_TDBAH15   0xe3c4
-
-#define E1000_TDH0  0x3810  /* Transmit Descriptor Head - RO */
-//#define E1000_TDH1  0x3910
-#define E1000_TDH2  0x3a10
-#define E1000_TDH3  0x3b10
-#define E1000_TDH4  0xe110
-#define E1000_TDH5  0xe150
-#define E1000_TDH6  0xe190
-#define E1000_TDH7  0xe1d0
-#define E1000_TDH8  0xe210
-#define E1000_TDH9  0xe250
-#define E1000_TDH10 0xe290
-#define E1000_TDH11 0xe2d0
-#define E1000_TDH12 0xe310
-#define E1000_TDH13 0xe350
-#define E1000_TDH14 0xe390
-#define E1000_TDH15 0xe3d0
-
-#define E1000_TDT0  0x3818  /* Transmit Descriptor Tail - RW */
-//#define E1000_TDT1  0x3918
-#define E1000_TDT2  0x3a18
-#define E1000_TDT3  0x3b18
-#define E1000_TDT4  0xe118
-#define E1000_TDT5  0xe158
-#define E1000_TDT6  0xe198
-#define E1000_TDT7  0xe1d8
-#define E1000_TDT8  0xe218
-#define E1000_TDT9  0xe258
-#define E1000_TDT10 0xe298
-#define E1000_TDT11 0xe2d8
-#define E1000_TDT12 0xe318
-#define E1000_TDT13 0xe358
-#define E1000_TDT14 0xe398
-#define E1000_TDT15 0xe3d8
-
-#define E1000_TDLEN0    0x3808  /* Transmit Descriptor Ring Length - RW */
-//#define E1000_TDLEN1    0x3908
-#define E1000_TDLEN2    0x3a08
-#define E1000_TDLEN3    0x3b08
-#define E1000_TDLEN4    0xe108
-#define E1000_TDLEN5    0xe148
-#define E1000_TDLEN6    0xe188
-#define E1000_TDLEN7    0xe1c8
-#define E1000_TDLEN8    0xe208
-#define E1000_TDLEN9    0xe248
-#define E1000_TDLEN10   0xe288
-#define E1000_TDLEN11   0xe2c8
-#define E1000_TDLEN12   0xe308
-#define E1000_TDLEN13   0xe348
-#define E1000_TDLEN14   0xe388
-#define E1000_TDLEN15   0xe3c8
-
-#define E1000_TXDCTL0   0x3828  /* Transmit Descriptor Control - RW */
-//#define E1000_TXDCTL1   0x3928
-#define E1000_TXDCTL2   0x3a28
-#define E1000_TXDCTL3   0x3b28
-#define E1000_TXDCTL4   0xe128
-#define E1000_TXDCTL5   0xe168
-#define E1000_TXDCTL6   0xe1a8
-#define E1000_TXDCTL7   0xe1e8
-#define E1000_TXDCTL8   0xe228
-#define E1000_TXDCTL9   0xe268
-#define E1000_TXDCTL10  0xe2a8
-#define E1000_TXDCTL11  0xe2e8
-#define E1000_TXDCTL12  0xe328
-#define E1000_TXDCTL13  0xe368
-#define E1000_TXDCTL14  0xe3a8
-#define E1000_TXDCTL15  0xe3e8
-
-#define E1000_VTCTRL0   0x10000 /* Mirror VF Control (only RST bit); RW */
-#define E1000_VTCTRL1   0x10100
-#define E1000_VTCTRL2   0x10200
-#define E1000_VTCTRL3   0x10300
-#define E1000_VTCTRL4   0x10400
-#define E1000_VTCTRL5   0x10500
-#define E1000_VTCTRL6   0x10600
-#define E1000_VTCTRL7   0x10700
-
-#define E1000_VTEICS0   0x10020 /* Mirror Extended Interrupt Cause Set; WO */
-#define E1000_VTEICS1   0x10120
-#define E1000_VTEICS2   0x10220
-#define E1000_VTEICS3   0x10320
-#define E1000_VTEICS4   0x10420
-#define E1000_VTEICS5   0x10520
-#define E1000_VTEICS6   0x10620
-#define E1000_VTEICS7   0x10720
-
-#define E1000_VTEIMS0   0x10024 /* Mirror Extended Interrupt Mask Set/Read; RW */
-#define E1000_VTEIMS1   0x10124
-#define E1000_VTEIMS2   0x10224
-#define E1000_VTEIMS3   0x10324
-#define E1000_VTEIMS4   0x10424
-#define E1000_VTEIMS5   0x10524
-#define E1000_VTEIMS6   0x10624
-#define E1000_VTEIMS7   0x10724
-
-#define E1000_VTEIMC0   0x10028 /* Mirror Extended Interrupt Mask Clear; WO */
-#define E1000_VTEIMC1   0x10128
-#define E1000_VTEIMC2   0x10228
-#define E1000_VTEIMC3   0x10328
-#define E1000_VTEIMC4   0x10428
-#define E1000_VTEIMC5   0x10528
-#define E1000_VTEIMC6   0x10628
-#define E1000_VTEIMC7   0x10728
-
-#define E1000_VTEIAC0   0x1002C /* Mirror Extended Interrupt Auto Clear; RW */
-#define E1000_VTEIAC1   0x1012C
-#define E1000_VTEIAC2   0x1022C
-#define E1000_VTEIAC3   0x1032C
-#define E1000_VTEIAC4   0x1042C
-#define E1000_VTEIAC5   0x1052C
-#define E1000_VTEIAC6   0x1062C
-#define E1000_VTEIAC7   0x1072C
-
-#define E1000_VTEIAM0   0x10030 /* Mirror Extended Interrupt Auto Mask Enable; RW */
-#define E1000_VTEIAM1   0x10130
-#define E1000_VTEIAM2   0x10230
-#define E1000_VTEIAM3   0x10330
-#define E1000_VTEIAM4   0x10430
-#define E1000_VTEIAM5   0x10530
-#define E1000_VTEIAM6   0x10630
-#define E1000_VTEIAM7   0x10730
-
-#define E1000_VTEICR0   0x10080 /* Mirror Extended Interrupt Cause Set; RC/W1C */
-#define E1000_VTEICR1   0x10180
-#define E1000_VTEICR2   0x10280
-#define E1000_VTEICR3   0x10380
-#define E1000_VTEICR4   0x10480
-#define E1000_VTEICR5   0x10580
-#define E1000_VTEICR6   0x10680
-#define E1000_VTEICR7   0x10780
-
-#define E1000_VFGPRC0   0x10010 /* Mirror Good Packets Received Count; RO */
-#define E1000_VFGPRC1   0x10110
-#define E1000_VFGPRC2   0x10210
-#define E1000_VFGPRC3   0x10310
-#define E1000_VFGPRC4   0x10410
-#define E1000_VFGPRC5   0x10510
-#define E1000_VFGPRC6   0x10610
-#define E1000_VFGPRC7   0x10710
-
-#define E1000_VFGPTC0   0x10014 /* Mirror Good Packets Transmitted Count; RO */
-#define E1000_VFGPTC1   0x10114
-#define E1000_VFGPTC2   0x10214
-#define E1000_VFGPTC3   0x10314
-#define E1000_VFGPTC4   0x10414
-#define E1000_VFGPTC5   0x10514
-#define E1000_VFGPTC6   0x10614
-#define E1000_VFGPTC7   0x10714
-
-#define E1000_VFGORC0   0x10018 /* Mirror Good Octets Received Count; RO */
-#define E1000_VFGORC1   0x10118
-#define E1000_VFGORC2   0x10218
-#define E1000_VFGORC3   0x10318
-#define E1000_VFGORC4   0x10418
-#define E1000_VFGORC5   0x10518
-#define E1000_VFGORC6   0x10618
-#define E1000_VFGORC7   0x10718
-
-#define E1000_VFGOTC0   0x10034 /* Mirror Good Octets Transmitted Count; RO */
-#define E1000_VFGOTC1   0x10134
-#define E1000_VFGOTC2   0x10234
-#define E1000_VFGOTC3   0x10334
-#define E1000_VFGOTC4   0x10434
-#define E1000_VFGOTC5   0x10534
-#define E1000_VFGOTC6   0x10634
-#define E1000_VFGOTC7   0x10734
-
-#define E1000_VFMPRC0   0x1003C /* Mirror Multicast Packets Received Count; RO */
-#define E1000_VFMPRC1   0x1013C
-#define E1000_VFMPRC2   0x1023C
-#define E1000_VFMPRC3   0x1033C
-#define E1000_VFMPRC4   0x1043C
-#define E1000_VFMPRC5   0x1053C
-#define E1000_VFMPRC6   0x1063C
-#define E1000_VFMPRC7   0x1073C
-
-#define E1000_VFGPRLBC0 0x10040 /* Mirror Good RX Packets loopback Count; RO */
-#define E1000_VFGPRLBC1 0x10140
-#define E1000_VFGPRLBC2 0x10240
-#define E1000_VFGPRLBC3 0x10340
-#define E1000_VFGPRLBC4 0x10440
-#define E1000_VFGPRLBC5 0x10540
-#define E1000_VFGPRLBC6 0x10640
-#define E1000_VFGPRLBC7 0x10740
-
-#define E1000_VFGPTLBC0 0x10044 /* Mirror Good TX packets loopback Count; RO */
-#define E1000_VFGPTLBC1 0x10144
-#define E1000_VFGPTLBC2 0x10244
-#define E1000_VFGPTLBC3 0x10344
-#define E1000_VFGPTLBC4 0x10444
-#define E1000_VFGPTLBC5 0x10544
-#define E1000_VFGPTLBC6 0x10644
-#define E1000_VFGPTLBC7 0x10744
-
-#define E1000_VFGORLBC0 0x10048 /* Mirror Good RX Octets loopback Count; RO */
-#define E1000_VFGORLBC1 0x10148
-#define E1000_VFGORLBC2 0x10248
-#define E1000_VFGORLBC3 0x10348
-#define E1000_VFGORLBC4 0x10448
-#define E1000_VFGORLBC5 0x10548
-#define E1000_VFGORLBC6 0x10648
-#define E1000_VFGORLBC7 0x10748
-
-#define E1000_VFGOTLBC0 0x10050 /* Mirror Good TX Octets loopback Count; RO */
-#define E1000_VFGOTLBC1 0x10150
-#define E1000_VFGOTLBC2 0x10250
-#define E1000_VFGOTLBC3 0x10350
-#define E1000_VFGOTLBC4 0x10450
-#define E1000_VFGOTLBC5 0x10550
-#define E1000_VFGOTLBC6 0x10650
-#define E1000_VFGOTLBC7 0x10750
-
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */
@@ -724,10 +314,7 @@
 #define E1000_ICTXQEC  0x04118  /* Interrupt Cause Tx Queue Empty Count */
 #define E1000_ICTXQMTC 0x0411C  /* Interrupt Cause Tx Queue Minimum Threshold Count */
 #define E1000_ICRXDMTC 0x04120  /* Interrupt Cause Rx Descriptor Minimum Threshold Count */
-
-// #define E1000_ICRXOC   0x04124  /* Interrupt Cause Receiver Overrun Count */
-#define E1000_HTCBDPC  0x04124  /* Host TX Circuit Breaker Dropped Count */
-
+#define E1000_ICRXOC   0x04124  /* Interrupt Cause Receiver Overrun Count */
 #define E1000_RXCSUM   0x05000  /* RX Checksum Control - RW */
 #define E1000_RFCTL    0x05008  /* Receive Filter Control*/
 #define E1000_MAVTV0   0x05010  /* Management VLAN TAG Value 0 */
@@ -829,14 +416,11 @@
 #define E1000_ICR_ASSERTED BIT(31)
 #define E1000_EIAC_MASK    0x01F00000
 
-/* Igb specific: */
-#define E1000_EICR_MASK 0x01FFFFFF /* EICR used bits in MSIX mode */
-
 /* [TR]DBAL and [TR]DLEN masks */
 #define E1000_XDBAL_MASK            (~(BIT(4) - 1))
 #define E1000_XDLEN_MASK            ((BIT(20) - 1) & (~(BIT(7) - 1)))
 
-/* IVAR register parsing helpers, E1000E */
+/* IVAR register parsing helpers */
 #define E1000_IVAR_INT_ALLOC_VALID  (0x8)
 
 #define E1000_IVAR_RXQ0_SHIFT       (0)
@@ -936,9 +520,6 @@
 /* 82574-specific registers - page 6 */
 #define PHY_CRC_COUNTERS      0x11 /* CRC Counters */
 
-/* 82576-specific registers */
-#define PHY_PAGE_SELECT        0x1F /* Page Select */
-
 #define PHY_PAGE_RW_MASK 0x7F /* R/W part of page address register */
 
 #define MAX_PHY_REG_ADDRESS        0x1F  /* 5 bit address bus (0-0x1F) */
@@ -971,21 +552,21 @@
 #define MII_CR_RESET            0x8000 /* 0 = normal, 1 = PHY reset */
 
 /* PHY Status Register */
-#define MII_SR_EXTENDED_CAPS     0x0001 /* Extended register capabilities */
-#define MII_SR_JABBER_DETECT     0x0002 /* Jabber Detected */
-#define MII_SR_LINK_STATUS       0x0004 /* Link Status 1 = link */
-#define MII_SR_AUTONEG_CAPS      0x0008 /* Auto Neg Capable */
-#define MII_SR_REMOTE_FAULT      0x0010 /* Remote Fault Detect */
-#define MII_SR_AUTONEG_COMPLETE  0x0020 /* Auto Neg Complete */
-#define MII_SR_PREAMBLE_SUPPRESS 0x0040 /* Preamble may be suppressed */
-#define MII_SR_EXTENDED_STATUS   0x0100 /* Ext. status info in Reg 0x0F */
-#define MII_SR_100T2_HD_CAPS     0x0200 /* 100T2 Half Duplex Capable */
-#define MII_SR_100T2_FD_CAPS     0x0400 /* 100T2 Full Duplex Capable */
-#define MII_SR_10T_HD_CAPS       0x0800 /* 10T   Half Duplex Capable */
-#define MII_SR_10T_FD_CAPS       0x1000 /* 10T   Full Duplex Capable */
-#define MII_SR_100X_HD_CAPS      0x2000 /* 100X  Half Duplex Capable */
-#define MII_SR_100X_FD_CAPS      0x4000 /* 100X  Full Duplex Capable */
-#define MII_SR_100T4_CAPS        0x8000 /* 100T4 Capable */
+#define MII_SR_EXTENDED_CAPS     0x0001	/* Extended register capabilities */
+#define MII_SR_JABBER_DETECT     0x0002	/* Jabber Detected */
+#define MII_SR_LINK_STATUS       0x0004	/* Link Status 1 = link */
+#define MII_SR_AUTONEG_CAPS      0x0008	/* Auto Neg Capable */
+#define MII_SR_REMOTE_FAULT      0x0010	/* Remote Fault Detect */
+#define MII_SR_AUTONEG_COMPLETE  0x0020	/* Auto Neg Complete */
+#define MII_SR_PREAMBLE_SUPPRESS 0x0040	/* Preamble may be suppressed */
+#define MII_SR_EXTENDED_STATUS   0x0100	/* Ext. status info in Reg 0x0F */
+#define MII_SR_100T2_HD_CAPS     0x0200	/* 100T2 Half Duplex Capable */
+#define MII_SR_100T2_FD_CAPS     0x0400	/* 100T2 Full Duplex Capable */
+#define MII_SR_10T_HD_CAPS       0x0800	/* 10T   Half Duplex Capable */
+#define MII_SR_10T_FD_CAPS       0x1000	/* 10T   Full Duplex Capable */
+#define MII_SR_100X_HD_CAPS      0x2000	/* 100X  Half Duplex Capable */
+#define MII_SR_100X_FD_CAPS      0x4000	/* 100X  Full Duplex Capable */
+#define MII_SR_100T4_CAPS        0x8000	/* 100T4 Capable */
 
 /* PHY Link Partner Ability Register */
 #define MII_LPAR_LPACK           0x4000 /* Acked by link partner */
