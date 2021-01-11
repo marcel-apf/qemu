@@ -19,7 +19,7 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pcie.h"
 #include "hw/pci/msix.h"
-#include "e1000_regs.h"
+#include "igb_regs_tmp.h"
 #include "igb_common.h"
 #include "trace.h"
 #include "qapi/error.h"

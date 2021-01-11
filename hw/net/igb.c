@@ -48,7 +48,7 @@
 #include "migration/vmstate.h"
 #include "igb_regs.h"
 #include "e1000x_common.h"
-#include "e1000x_enums.h"
+#include "igb_enums.h"
 #include "igb_core.h"
 #include "igb_common.h"
 #include "trace.h"
