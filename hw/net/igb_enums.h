@@ -35,7 +35,7 @@ enum {
     defreg(GPTC),    defreg(ICR),     defreg(ICS),     defreg(IMC),
     defreg(IMS),     defreg(LEDCTL),  defreg(MANC),    defreg(MDIC),
     defreg(MPC),     defreg(PBA),     defreg(RCTL),    defreg(RDBAH0),
-    defreg(RDBAL0),  defreg(RDH0),    defreg(RDLEN0),  defreg(RDT0),
+    defreg(RDH0),    defreg(RDLEN0),  defreg(RDT0),
     defreg(STATUS),  defreg(SWSM),    defreg(TCTL),    defreg(TDBAH),
     defreg(TDBAL),   defreg(TDH),     defreg(TDLEN),   defreg(TDT),
     defreg(TDLEN1),  defreg(TDBAL1),  defreg(TDBAH1),  defreg(TDH1),
@@ -70,7 +70,7 @@ enum {
     defreg(GSCN_1),  defreg(GSCN_2),  defreg(GSCN_3),  defreg(GCR2),
     defreg(RAID),    defreg(RSRPD),   defreg(TIDV),    defreg(EITR),
     defreg(MRQC),    defreg(RETA),    defreg(RSSRK),   defreg(RDBAH1),
-    defreg(RDBAL1),  defreg(RDLEN1),  defreg(RDH1),    defreg(RDT1),
+    defreg(RDLEN1),  defreg(RDH1),    defreg(RDT1),
     defreg(PBACLR),  defreg(FCAL),    defreg(FCAH),    defreg(FCT),
     defreg(FCRTH),   defreg(FCRTL),   defreg(FCTTV),   defreg(FCRTV),
     defreg(FLA),     defreg(EEWR),    defreg(FLOP),    defreg(FLOL),
@@ -80,7 +80,7 @@ enum {
     defreg(RXCFGL),  defreg(RXUDP),   defreg(TIMADJL), defreg(TIMADJH),
     defreg(RXSTMPH), defreg(RXSTMPL), defreg(RXSATRL), defreg(RXSATRH),
     defreg(FLASHT),  defreg(TIPG),    defreg(RDH),     defreg(RDT),
-    defreg(RDLEN),   defreg(RDBAH),   defreg(RDBAL),
+    defreg(RDLEN),   defreg(RDBAH),
     defreg(TXDCTL1),
     defreg(FLSWDATA),
     defreg(CTRL_DUP),
@@ -96,9 +96,9 @@ enum {
     /* Aliases */
     defreg(RDH0_A),  defreg(RDT0_A),  defreg(RDTR_A),  defreg(RDFH_A),
     defreg(RDFT_A),  defreg(TDH_A),   defreg(TDT_A),   defreg(TIDV_A),
-    defreg(TDFH_A),  defreg(TDFT_A),  defreg(RA_A),    defreg(RDBAL0_A),
+    defreg(TDFH_A),  defreg(TDFT_A),  defreg(RA_A),
     defreg(TDBAL_A), defreg(TDLEN_A), defreg(VFTA_A),  defreg(RDLEN0_A),
-    defreg(FCRTL_A), defreg(FCRTH_A),
+    defreg(FCRTL_A), defreg(FCRTH_A), defreg(RDBAH0_A),
 
     /* Additional regs used by IGB */
     defreg(FWSM),   defreg(SW_FW_SYNC), defreg(HTCBDPC), defreg(GPIE),
@@ -106,7 +106,7 @@ enum {
     defreg(EIMC),   defreg(TXPBS),      defreg(TCTL_EXT),
     defreg(DTXCTL), defreg(RXPBS),      defreg(RQDPC),
 
-    /*defreg(RDBAL0),  defreg(RDBAL1),*/  defreg(RDBAL2),  defreg(RDBAL3),
+    defreg(RDBAL0),  defreg(RDBAL1),  defreg(RDBAL2),  defreg(RDBAL3),
     defreg(RDBAL4),  defreg(RDBAL5),  defreg(RDBAL6),  defreg(RDBAL7),
     defreg(RDBAL8),  defreg(RDBAL9),  defreg(RDBAL10), defreg(RDBAL11),
     defreg(RDBAL12), defreg(RDBAL13), defreg(RDBAL14), defreg(RDBAL15),
@@ -213,6 +213,10 @@ enum {
     defreg(VFGOTLBC6),  defreg(VFGOTLBC7),
 
     defreg(IVAR_MISC),
+
+    defreg(RDBAL0_ALT), defreg(RDBAL1_ALT), defreg(RDBAL2_ALT),
+    defreg(RDBAL3_ALT),
+
 };
 
 #endif

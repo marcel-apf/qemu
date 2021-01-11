@@ -144,7 +144,6 @@
 #define E1000_EITR     0x01680  /* Extended Interrupt Throttling Rate - RW */
 #define E1000_RCTL     0x00100  /* RX Control - RW */
 #define E1000_RDTR1    0x02820  /* RX Delay Timer (1) - RW */
-#define E1000_RDBAL1   0x02900  /* RX Descriptor Base Address Low (1) - RW */
 #define E1000_RDBAH1   0x02904  /* RX Descriptor Base Address High (1) - RW */
 #define E1000_RDLEN1   0x02908  /* RX Descriptor Length (1) - RW */
 #define E1000_RDH1     0x02910  /* RX Descriptor Head (1) - RW */
@@ -220,23 +219,6 @@
 #define E1000_VFGPTLBC  0x00F44 /* Good TX packets loopback Count */
 #define E1000_VFGORLBC  0x00F48 /* Good RX Octets loopback Count */
 #define E1000_VFGOTLBC  0x00F50 /* Good TX Octets loopback Count */
-
-//#define E1000_RDBAL0    0x2800  /* RX Descriptor Base Low - RW */
-//#define E1000_RDBAL1    0x2900
-#define E1000_RDBAL2    0x2a00
-#define E1000_RDBAL3    0x2b00
-#define E1000_RDBAL4    0xc100
-#define E1000_RDBAL5    0xc140
-#define E1000_RDBAL6    0xc180
-#define E1000_RDBAL7    0xc1c0
-#define E1000_RDBAL8    0xc200
-#define E1000_RDBAL9    0xc240
-#define E1000_RDBAL10   0xc280
-#define E1000_RDBAL11   0xc2c0
-#define E1000_RDBAL12   0xc300
-#define E1000_RDBAL13   0xc340
-#define E1000_RDBAL14   0xc380
-#define E1000_RDBAL15   0xc3c0
 
 //#define E1000_RDBAH0    0x2804  /* RX Descriptor Base High - RW */
 //#define E1000_RDBAH1    0x2904
@@ -592,15 +574,12 @@
 #define E1000_FCRTH    0x02168  /* Flow Control Receive Threshold High - RW */
 #define E1000_FCRTH_A  0x00160  /* Alias to FCRTH */
 #define E1000_PSRCTL   0x02170  /* Packet Split Receive Control - RW */
-#define E1000_RDBAL    0x02800  /* RX Descriptor Base Address Low - RW */
 #define E1000_RDBAH    0x02804  /* RX Descriptor Base Address High - RW */
 #define E1000_RDLEN    0x02808  /* RX Descriptor Length - RW */
 #define E1000_RDH      0x02810  /* RX Descriptor Head - RW */
 #define E1000_RDT      0x02818  /* RX Descriptor Tail - RW */
 #define E1000_RDTR     0x02820  /* RX Delay Timer - RW */
 #define E1000_RDTR_A   0x00108  /* Alias to RDTR */
-#define E1000_RDBAL0   E1000_RDBAL /* RX Desc Base Address Low (0) - RW */
-#define E1000_RDBAL0_A 0x00110     /* Alias to RDBAL0 */
 #define E1000_RDBAH0   E1000_RDBAH /* RX Desc Base Address High (0) - RW */
 #define E1000_RDBAH0_A 0x00114     /* Alias to RDBAH0 */
 #define E1000_RDLEN0   E1000_RDLEN /* RX Desc Length (0) - RW */

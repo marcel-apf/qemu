@@ -3978,8 +3978,14 @@ static const uint16_t mac_reg_access[E1000E_MAC_SIZE] = {
     [TDFH_A]  = 0xed00, [TDFT_A]  = 0xed00,
     [RA_A ... RA_A + 31]      = 0x14f0,
     [VFTA_A ... VFTA_A + 127] = 0x1400,
-    [RDBAL0_A ... RDLEN0_A] = 0x09bc,
+    [RDBAH0_A ... RDLEN0_A] = 0x09bc,
     [TDBAL_A ... TDLEN_A]   = 0x0cf8,
+
+    [RDBAL0_ALT] = 0x2600,
+    [RDBAL1_ALT] = 0x25D0,
+    [RDBAL2_ALT] = 0x25A0,
+    [RDBAL3_ALT] = 0x2570,
+
     /* Access options */
     [RDFH]  = MAC_ACCESS_PARTIAL,    [RDFT]  = MAC_ACCESS_PARTIAL,
     [RDFHS] = MAC_ACCESS_PARTIAL,    [RDFTS] = MAC_ACCESS_PARTIAL,
@@ -3999,6 +4005,10 @@ static const uint16_t mac_reg_access[E1000E_MAC_SIZE] = {
 void igb_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size)
 {
     uint16_t index = e1000e_get_reg_index_with_offset(mac_reg_access, addr);
+
+if (mac_reg_access[addr >> 2] & 0xfffe) {
+    fprintf(stderr, "Alias 0x%04lX -> 0x%04X\n", addr, index << 2);
+}
 
     if (index < E1000E_NWRITEOPS && e1000e_macreg_writeops[index]) {
         if (mac_reg_access[index] & MAC_ACCESS_PARTIAL) {
