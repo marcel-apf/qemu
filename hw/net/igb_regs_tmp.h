@@ -136,11 +136,12 @@
 #define E1000_ITR      0x000C4  /* Interrupt Throttling Rate - RW */
 #define E1000_ICS      0x000C8  /* Interrupt Cause Set - WO */
 #define E1000_IMS      0x000D0  /* Interrupt Mask Set - RW */
-#define E1000_EIAC     0x000DC  /* Ext. Interrupt Auto Clear - RW */
+#define E1000_EIAC     0x0152C  /* Ext. Interrupt Auto Clear - RW */
 #define E1000_IMC      0x000D8  /* Interrupt Mask Clear - WO */
 #define E1000_IAM      0x000E0  /* Interrupt Acknowledge Auto Mask */
-#define E1000_IVAR     0x000E4  /* Interrupt Vector Allocation Register - RW */
-#define E1000_EITR     0x000E8  /* Extended Interrupt Throttling Rate - RW */
+#define E1000_IVAR     0x01700  /* Interrupt Vector Allocation Register - RW */
+#define E1000_IVAR_MISC 0x01740  /* Interrupt Vector Allocation Register (last) - RW */
+#define E1000_EITR     0x01680  /* Extended Interrupt Throttling Rate - RW */
 #define E1000_RCTL     0x00100  /* RX Control - RW */
 #define E1000_RDTR1    0x02820  /* RX Delay Timer (1) - RW */
 #define E1000_RDBAL1   0x02900  /* RX Descriptor Base Address Low (1) - RW */
@@ -189,10 +190,6 @@
 #define E1000_EICR     0x01580  /* Ext. Interrupt Cause Read - R/clr */
 #define E1000_RXPBS    0x02404  /* RX packet buffer size - RW */
 #define E1000_RQDPC    0x0C030  /* Rx Queue drop packet - RC */
-#define IGB_IVAR       0x01700  /* Interrupt Vector Allocation Register (1st) - RW */
-#define IGB_IVAR_MISC  0x01740  /* Interrupt Vector Allocation Register (last) - RW */
-#define IGB_EIAC       0x0152C  /* Extended Interrupt Auto Clear - RW */
-#define IGB_EITR       0x01680  /* Interrupt Throttle - RW */
 
 #define E1000_TXPBS    0x03404  /* Tx Packet Buffer Size - RW */
 #define E1000_DTXCTL   0x03590  /* DMA TX Control - RW */

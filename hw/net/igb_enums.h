@@ -25,10 +25,11 @@
 #ifndef HW_NET_IGB_ENUMS_H
 #define HW_NET_IGB_ENUMS_H
 
+#include "igb_regs_new.h"
 #include "igb_regs_tmp.h"
 
 #define defreg(x)   x = (E1000_##x >> 2)
-#define idefreg(x)  I_##x = (IGB_##x >> 2)
+
 enum {
     defreg(CTRL),    defreg(EECD),    defreg(EERD),    defreg(GPRC),
     defreg(GPTC),    defreg(ICR),     defreg(ICS),     defreg(IMC),
@@ -211,7 +212,7 @@ enum {
     defreg(VFGOTLBC3),  defreg(VFGOTLBC4),  defreg(VFGOTLBC5),
     defreg(VFGOTLBC6),  defreg(VFGOTLBC7),
 
-    idefreg(IVAR), idefreg(IVAR_MISC), idefreg(EIAC), idefreg(EITR)
+    defreg(IVAR_MISC),
 };
 
 #endif
