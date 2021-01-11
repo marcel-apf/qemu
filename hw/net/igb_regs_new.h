@@ -21,6 +21,105 @@
 #ifndef HW_IGB_REGS_H
 #define HW_IGB_REGS_H
 
+#define E1000_RDBAL0        0xC000 /* RX Descriptor Base Low Queue 0; RW */
+#define E1000_RDBAL0_ALT    0x2800
+#define E1000_RDBAL1        0xC040 /* RX Descriptor Base Low Queue 1; RW */
+#define E1000_RDBAL1_ALT    0x2900
+#define E1000_RDBAL2        0xC080 /* RX Descriptor Base Low Queue 2; RW */
+#define E1000_RDBAL2_ALT    0x2A00
+#define E1000_RDBAL3        0xC0C0 /* RX Descriptor Base Low Queue 3; RW */
+#define E1000_RDBAL3_ALT    0x2B00
+#define E1000_RDBAL4        0xC100 /* RX Descriptor Base Low Queue 4; RW */
+#define E1000_RDBAL5        0xC140 /* RX Descriptor Base Low Queue 5; RW */
+#define E1000_RDBAL6        0xC180 /* RX Descriptor Base Low Queue 6; RW */
+#define E1000_RDBAL7        0xC1C0 /* RX Descriptor Base Low Queue 7; RW */
+#define E1000_RDBAL8        0xC200 /* RX Descriptor Base Low Queue 8; RW */
+#define E1000_RDBAL9        0xC240 /* RX Descriptor Base Low Queue 9; RW */
+#define E1000_RDBAL10       0xC280 /* RX Descriptor Base Low Queue 10; RW */
+#define E1000_RDBAL11       0xC2C0 /* RX Descriptor Base Low Queue 11; RW */
+#define E1000_RDBAL12       0xC300 /* RX Descriptor Base Low Queue 12; RW */
+#define E1000_RDBAL13       0xC340 /* RX Descriptor Base Low Queue 13; RW */
+#define E1000_RDBAL14       0xC380 /* RX Descriptor Base Low Queue 14; RW */
+#define E1000_RDBAL15       0xC3C0 /* RX Descriptor Base Low Queue 15; RW */
+
+#define E1000_CTRL_ALT      0x0004
+#define E1000_ICR_ALT       0x00C0
+#define E1000_ICS_ALT       0x00C8
+#define E1000_IMS_ALT       0x00D0
+#define E1000_IMC_ALT       0x00D8
+#define E1000_IAM_ALT       0x00E0
+#define E1000_FCRTL_ALT     0x0168
+#define E1000_RDBAH0_ALT    0x2804
+#define E1000_RDLEN0_ALT    0x2808
+#define E1000_SRRCTL0_ALT   0x280C
+#define E1000_RDH0_ALT      0x2810
+#define E1000_RDT0_ALT      0x2818
+#define E1000_RXDCTL0_ALT   0x2828
+#define E1000_RXCTL0_ALT    0x2814
+#define E1000_RQDPC0_ALT    0x2830
+#define E1000_RDBAH1_ALT    0x2904
+#define E1000_RDBAH2_ALT    0x2A04
+#define E1000_RDBAH3_ALT    0x2B04
+#define E1000_RDLEN1_ALT    0x2908
+#define E1000_RDLEN2_ALT    0x2A08
+#define E1000_RDLEN3_ALT    0x2B08
+#define E1000_SRRCTL1_ALT   0x290C
+#define E1000_SRRCTL2_ALT   0x2A0C
+#define E1000_SRRCTL3_ALT   0x2B0C
+#define E1000_RDH1_ALT      0x2910
+#define E1000_RDH2_ALT      0x2A10
+#define E1000_RDH3_ALT      0x2B10
+#define E1000_RDT1_ALT      0x2918
+#define E1000_RDT2_ALT      0x2A18
+#define E1000_RDT3_ALT      0x2B18
+#define E1000_RXDCTL1_ALT   0x2928
+#define E1000_RXDCTL2_ALT   0x2A28
+#define E1000_RXDCTL3_ALT   0x2B28
+#define E1000_RXCTL1_ALT    0x2914
+#define E1000_RXCTL2_ALT    0x2A14
+#define E1000_RXCTL3_ALT    0x2B14
+#define E1000_RQDPC1_ALT    0x2930
+#define E1000_RQDPC2_ALT    0x2A30
+#define E1000_RQDPC3_ALT    0x2B30
+#define E1000_MTA_ALT       0x0200
+#define E1000_VFTA_ALT      0x0600
+#define E1000_TDBAL0_ALT    0x3800
+#define E1000_TDBAH0_ALT    0x3804
+#define E1000_TDLEN0_ALT    0x3808
+#define E1000_TDH0_ALT      0x3810
+#define E1000_TDT0_ALT      0x3818
+#define E1000_TXDCTL0_ALT   0x3828
+#define E1000_TXCTL0_ALT    0x3814
+#define E1000_TDWBAL0_ALT   0x3838
+#define E1000_TDWBAH0_ALT   0x383C
+#define E1000_TDBAL1_ALT    0x3900
+#define E1000_TDBAL2_ALT    0x3A00
+#define E1000_TDBAL3_ALT    0x3B00
+#define E1000_TDBAH1_ALT    0x3904
+#define E1000_TDBAH2_ALT    0x3A04
+#define E1000_TDBAH3_ALT    0x3B04
+#define E1000_TDLEN1_ALT    0x3908
+#define E1000_TDLEN2_ALT    0x3A08
+#define E1000_TDLEN3_ALT    0x3B08
+#define E1000_TDH1_ALT      0x3910
+#define E1000_TDH2_ALT      0x3A10
+#define E1000_TDH3_ALT      0x3B10
+#define E1000_TDT1_ALT      0x3918
+#define E1000_TDT2_ALT      0x3A18
+#define E1000_TDT3_ALT      0x3B18
+#define E1000_TXDCTL1_ALT   0x3928
+#define E1000_TXDCTL2_ALT   0x3A28
+#define E1000_TXDCTL3_ALT   0x3B28
+#define E1000_TXCTL1_ALT    0x3914
+#define E1000_TXCTL2_ALT    0x3A14
+#define E1000_TXCTL3_ALT    0x3B14
+#define E1000_TDWBAL1_ALT   0x3938
+#define E1000_TDWBAL2_ALT   0x3A38
+#define E1000_TDWBAL3_ALT   0x3B38
+#define E1000_TDWBAH1_ALT   0x393C
+#define E1000_TDWBAH2_ALT   0x3A3C
+#define E1000_TDWBAH3_ALT   0x3B3C
+
 /* Interrupts */
 
 #define IGB_INT_TXDW        0x00000001 /* Transmit Descriptor Written Back */
