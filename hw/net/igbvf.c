@@ -19,6 +19,7 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pcie.h"
 #include "hw/pci/msix.h"
+#include "igb_regs_new.h"
 #include "igb_regs_tmp.h"
 #include "igb_common.h"
 #include "trace.h"

@@ -191,7 +191,7 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
 
     for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         core->eitr[i].core = core;
-        core->eitr[i].delay_reg = I_EITR + i;
+        core->eitr[i].delay_reg = EITR + i;
         core->eitr[i].delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
     }
 
@@ -705,7 +705,7 @@ static inline uint32_t igb_tx_wb_interrupt_cause(E1000ECore *core,
 
     n = ((queue_idx < 8) ? (queue_idx*4 + 1) : ((queue_idx-8)*4 + 3));
 
-    int_alloc = (core->mac[I_IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
+    int_alloc = (core->mac[IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
 
     return (int_alloc & BIT(7)) ? BIT(int_alloc & 0x1f) : 0;
 }
@@ -722,7 +722,7 @@ static inline uint32_t igb_rx_wb_interrupt_cause(E1000ECore *core,
 
     n = ((queue_idx < 8) ? (queue_idx*4) : ((queue_idx-8)*4 + 2));
 
-    int_alloc = (core->mac[I_IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
+    int_alloc = (core->mac[IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
 
     return (int_alloc & BIT(7)) ? BIT(int_alloc & 0x1f) : 0;
 }
@@ -2081,9 +2081,9 @@ static void igb_send_msi(E1000ECore *core, bool msix)
             }
 
             trace_e1000e_irq_icr_clear_eiac(core->mac[EICR],
-                                            core->mac[I_EIAC]);
+                                            core->mac[EIAC]);
 
-            effective_eiac = core->mac[I_EIAC] & BIT(vector);
+            effective_eiac = core->mac[EIAC] & BIT(vector);
             core->mac[EICR] &= ~effective_eiac;
         }
     }
@@ -2102,14 +2102,14 @@ static void igb_update_interrupt_state(E1000ECore *core)
         if (is_msix) {
             causes = 0;
             if (icr & IGB_INT_TCP_TIMER) {
-                int_alloc = core->mac[I_IVAR_MISC] & 0xff;
+                int_alloc = core->mac[IVAR_MISC] & 0xff;
                 if (int_alloc & BIT(7)) {
                     causes |= BIT(int_alloc & 0x1f);
                 }
             }
             /* Check if other bits (excluding the TCP Timer) are enabled. */
             if (icr & ~IGB_INT_TCP_TIMER) {
-                int_alloc = (core->mac[I_IVAR_MISC] >> 8) & 0xff;
+                int_alloc = (core->mac[IVAR_MISC] >> 8) & 0xff;
                 if (int_alloc & BIT(7)) {
                     causes |= BIT(int_alloc & 0x1f);
                 }
@@ -2291,7 +2291,7 @@ static void igb_set_eiac(E1000ECore *core, int index, uint32_t val)
 
         /* TODO: When using IOV, the bits that correspond to MSI-X vectors
            that are assigned to a VF are read-only. */
-        core->mac[I_EIAC] |= (val & IGB_EINT_MSIX_MASK);
+        core->mac[EIAC] |= (val & IGB_EINT_MSIX_MASK);
     }
 }
 
@@ -2737,7 +2737,7 @@ e1000e_mac_swsm_read(E1000ECore *core, int index)
 
 static uint32_t igb_mac_eitr_read(E1000ECore *core, int index)
 {
-    uint32_t val = core->eitr_guest_value[index - I_EITR];
+    uint32_t val = core->eitr_guest_value[index - EITR];
 
     /* CNT_INGR (bit 31) is always read as zero. */
     val &= (BIT(31) - 1);
@@ -2944,7 +2944,7 @@ e1000e_set_eewr(E1000ECore *core, int index, uint32_t val)
 static void igb_set_eitr(E1000ECore *core, int index, uint32_t val)
 {
     uint32_t interval = val & 0x7FFE;
-    uint32_t eitr_num = index - I_EITR;
+    uint32_t eitr_num = index - EITR;
 
     trace_igb_irq_eitr_set(eitr_num, val);
 
@@ -3094,7 +3094,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(GORCL),
     e1000e_getreg(MGTPRC),
     e1000e_getreg(EERD),
-    e1000e_getreg(I_EIAC),
+    e1000e_getreg(EIAC),
     e1000e_getreg(PSRCTL),
     e1000e_getreg(MANC2H),
     e1000e_getreg(RXCSUM),
@@ -3498,7 +3498,7 @@ static const readops e1000e_macreg_readops[] = {
     [RETA ... RETA + 31]   = e1000e_mac_readreg,
     [RSSRK ... RSSRK + 31] = e1000e_mac_readreg,
     [MAVTV0 ... MAVTV3]    = e1000e_mac_readreg,
-    [I_EITR ... I_EITR + IGB_MSIX_VEC_NUM - 1] = igb_mac_eitr_read,
+    [EITR ... EITR + IGB_MSIX_VEC_NUM - 1] = igb_mac_eitr_read,
     [VTEICR0] = e1000e_mac_read_clr4,
     [VTEICR1] = e1000e_mac_read_clr4,
     [VTEICR2] = e1000e_mac_read_clr4,
@@ -3517,8 +3517,8 @@ static const readops e1000e_macreg_readops[] = {
     [EICR]       = e1000e_mac_read_clr4,
     [EIMS]       = e1000e_mac_readreg,
     [EIAM]       = e1000e_mac_readreg,
-    [I_IVAR ... I_IVAR + 7] = e1000e_mac_readreg,
-    e1000e_getreg(I_IVAR_MISC),
+    [IVAR ... IVAR + 7] = e1000e_mac_readreg,
+    e1000e_getreg(IVAR_MISC),
     [PFMAILBOX ... PFMAILBOX + 7] = igb_mac_pfmailbox_read,
     [VFMAILBOX ... VFMAILBOX + 7] = igb_mac_vfmailbox_read,
     e1000e_getreg(MBVFICR),
@@ -3875,7 +3875,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [RETA ... RETA + 31]     = e1000e_mac_writereg,
     [RSSRK ... RSSRK + 31]   = e1000e_mac_writereg,
     [MAVTV0 ... MAVTV3]      = e1000e_mac_writereg,
-    [I_EITR ... I_EITR + IGB_MSIX_VEC_NUM - 1] = igb_set_eitr,
+    [EITR ... EITR + IGB_MSIX_VEC_NUM - 1] = igb_set_eitr,
 
     /* IGB specific - should go in a disjoint struct
      * but put here now just to make changes comprehensible:
@@ -3884,12 +3884,12 @@ static const writeops e1000e_macreg_writeops[] = {
     [SW_FW_SYNC] = e1000e_mac_writereg,
     [EICR] = igb_set_eicr,
     [EICS] = igb_set_eics,
-    [I_EIAC] = igb_set_eiac,
+    [EIAC] = igb_set_eiac,
     [EIAM] = igb_set_eiam,
     [EIMC] = igb_set_eimc,
     [EIMS] = igb_set_eims,
-    [I_IVAR ... I_IVAR + 7] = e1000e_mac_writereg,
-    e1000e_putreg(I_IVAR_MISC),
+    [IVAR ... IVAR + 7] = e1000e_mac_writereg,
+    e1000e_putreg(IVAR_MISC),
     [PFMAILBOX ... PFMAILBOX + 7] = igb_set_pfmailbox,
     [VFMAILBOX ... VFMAILBOX + 7] = igb_set_vfmailbox,
     [MBVFICR] = igb_set_mbvficr,
