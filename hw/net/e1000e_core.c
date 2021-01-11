@@ -45,6 +45,7 @@
 #include "net_rx_pkt.h"
 
 #include "e1000x_common.h"
+#include "e1000x_enums.h"
 #include "e1000e_core.h"
 
 #include "trace.h"

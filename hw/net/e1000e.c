@@ -46,10 +46,9 @@
 #include "hw/qdev-properties.h"
 #include "migration/vmstate.h"
 
-#include "e1000_regs.h"
-
 #include "e1000x_common.h"
 #include "e1000e_core.h"
+#include "e1000x_enums.h"
 
 #include "trace.h"
 #include "qapi/error.h"
