@@ -27,6 +27,35 @@
 
 #include "e1000_regs.h"
 
+/* Offload Context Descriptor */
+struct e1000_context_desc {
+    union {
+        uint32_t ip_config;
+        struct {
+            uint8_t ipcss;      /* IP checksum start */
+            uint8_t ipcso;      /* IP checksum offset */
+            uint16_t ipcse;     /* IP checksum end */
+        } ip_fields;
+    } lower_setup;
+    union {
+        uint32_t tcp_config;
+        struct {
+            uint8_t tucss;      /* TCP checksum start */
+            uint8_t tucso;      /* TCP checksum offset */
+            uint16_t tucse;     /* TCP checksum end */
+        } tcp_fields;
+    } upper_setup;
+    uint32_t cmd_and_length;    /* */
+    union {
+        uint32_t data;
+        struct {
+            uint8_t status;     /* Descriptor status */
+            uint8_t hdr_len;    /* Header length */
+            uint16_t mss;       /* Maximum segment size */
+        } fields;
+    } tcp_seg_setup;
+};
+
 void e1000x_inc_reg_if_not_full(uint32_t *mac, int index);
 
 void e1000x_grow_8reg_if_not_full(uint32_t *mac, int index, int size);
