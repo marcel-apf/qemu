@@ -214,70 +214,21 @@ enum {
     idefreg(IVAR), idefreg(IVAR_MISC), idefreg(EIAC), idefreg(EITR)
 };
 
-static inline void
-e1000x_inc_reg_if_not_full(uint32_t *mac, int index)
-{
-    if (mac[index] != 0xffffffff) {
-        mac[index]++;
-    }
-}
+void e1000x_inc_reg_if_not_full(uint32_t *mac, int index);
 
-static inline void
-e1000x_grow_8reg_if_not_full(uint32_t *mac, int index, int size)
-{
-    uint64_t sum = mac[index] | (uint64_t)mac[index + 1] << 32;
+void e1000x_grow_8reg_if_not_full(uint32_t *mac, int index, int size);
 
-    if (sum + size < sum) {
-        sum = ~0ULL;
-    } else {
-        sum += size;
-    }
-    mac[index] = sum;
-    mac[index + 1] = sum >> 32;
-}
+int e1000x_vlan_enabled(uint32_t *mac);
 
-static inline int
-e1000x_vlan_enabled(uint32_t *mac)
-{
-    return ((mac[CTRL] & E1000_CTRL_VME) != 0);
-}
+int e1000x_is_vlan_txd(uint32_t txd_lower);
 
-static inline int
-e1000x_is_vlan_txd(uint32_t txd_lower)
-{
-    return ((txd_lower & E1000_TXD_CMD_VLE) != 0);
-}
+int e1000x_vlan_rx_filter_enabled(uint32_t *mac);
 
-static inline int
-e1000x_vlan_rx_filter_enabled(uint32_t *mac)
-{
-    return ((mac[RCTL] & E1000_RCTL_VFE) != 0);
-}
+int e1000x_fcs_len(uint32_t *mac);
 
-static inline int
-e1000x_fcs_len(uint32_t *mac)
-{
-    /* FCS aka Ethernet CRC-32. We don't get it from backends and can't
-    * fill it in, just pad descriptor length by 4 bytes unless guest
-    * told us to strip it off the packet. */
-    return (mac[RCTL] & E1000_RCTL_SECRC) ? 0 : 4;
-}
+void e1000x_update_regs_on_link_down(uint32_t *mac, uint16_t *phy);
 
-static inline void
-e1000x_update_regs_on_link_down(uint32_t *mac, uint16_t *phy)
-{
-    mac[STATUS] &= ~E1000_STATUS_LU;
-    phy[PHY_STATUS] &= ~MII_SR_LINK_STATUS;
-    phy[PHY_STATUS] &= ~MII_SR_AUTONEG_COMPLETE;
-    phy[PHY_LP_ABILITY] &= ~MII_LPAR_LPACK;
-}
-
-static inline void
-e1000x_update_regs_on_link_up(uint32_t *mac, uint16_t *phy)
-{
-    mac[STATUS] |= E1000_STATUS_LU;
-    phy[PHY_STATUS] |= MII_SR_LINK_STATUS;
-}
+void e1000x_update_regs_on_link_up(uint32_t *mac, uint16_t *phy);
 
 void e1000x_update_rx_total_stats(uint32_t *mac,
                                   size_t data_size,
