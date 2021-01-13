@@ -2123,6 +2123,14 @@ static void igb_set_eims(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
+static void igb_vf_reset(E1000ECore *core, uint16_t vfn)
+{
+    // TODO: Reset of the queue enable and the interrupt registers of the VF.
+
+    core->mac[VFMAILBOX + vfn] &= ~E1000_VFMAILBOX_RSTI;
+    core->mac[VFMAILBOX + vfn] = E1000_VFMAILBOX_RSTD;
+}
+
 static void mailbox_interrupt_to_vf(E1000ECore *core, uint16_t vfn)
 {
     core->mac[EICR] = (BIT(2) & 0x7) << (22 - vfn*3);
@@ -2256,9 +2264,11 @@ static void igb_set_eicr(E1000ECore *core, int index, uint32_t val)
 
 static void igb_set_vtctrl(E1000ECore *core, int index, uint32_t val)
 {
+    uint16_t vfn;
+
     if (val & E1000_CTRL_RST) {
-        /* TODO: This bit performs a reset of the queue enable and the
-                 interrupt registers of the VF. */
+        vfn = (index - VTCTRL0) / 0x40;
+        igb_vf_reset(core, vfn);
     }
 }
 
