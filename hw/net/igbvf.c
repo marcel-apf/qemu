@@ -46,20 +46,24 @@ typedef struct IgbVfState {
 
 } IgbVfState;
 
-static hwaddr igbvf_virt_to_phy(hwaddr addr, uint16_t vfn)
+static hwaddr vf_to_pf_addr(hwaddr addr, uint16_t vfn)
 {
     switch (addr)
     {
         case E1000_CTRL:
         case 0x0004: /* E1000_CTRL_ALT */
             return 0x10000 + vfn * 0x100;
+        case E1000_STATUS:
+            return 0x0008;
+        case 0x1048: /* E1000_VTFRTIMER */
+            return 0x1048;
         case E1000_EICS:
             return 0x10020 + vfn * 0x100;
         case E1000_EIMS:
             return 0x10024 + vfn * 0x100;
         case E1000_EIMC:
             return 0x10028 + vfn * 0x100;
-        case 0x152C: /* E1000_EIAC */
+        case E1000_EIAC:
             return 0x1002C + vfn * 0x100;
         case E1000_EIAM:
             return 0x10030 + vfn * 0x100;
@@ -69,10 +73,10 @@ static hwaddr igbvf_virt_to_phy(hwaddr addr, uint16_t vfn)
         case 0x1684:
         case 0x1688: /* E1000_EITR 0-2 */
             return 0x16E0 - (0x1688 - addr) - vfn * 0xC;
-        case 0x1700: /* E1000_IVAR */
-            return 0x1700 + vfn * 4;
-        case 0x1740: /* E1000_IVAR_MISC */
-            return 0x1720 + vfn * 4;
+        case E1000_IVAR:
+            return 0x11700 + vfn * 4;
+        case E1000_IVAR_MISC:
+            return 0x11720 + vfn * 4;
         case 0x0F04: /* E1000_PBACL */
             return 0x5B68;
         case 0x0F0C: /* E1000_PSRTYPE */
@@ -81,41 +85,41 @@ static hwaddr igbvf_virt_to_phy(hwaddr addr, uint16_t vfn)
             return 0x0C40 + vfn * 4;
         case 0x0800 ... 0x083F: /* VMBMEM */
             return addr + vfn * 0x40;
-        case E1000_RDBAL0:
+        case E1000_RDBAL0_ALT:
             return 0xC000 + vfn * 0x40;
-        case E1000_RDBAH0:
+        case E1000_RDBAH0_ALT:
             return 0xC004 + vfn * 0x40;
-        case E1000_RDLEN0:
+        case E1000_RDLEN0_ALT:
             return 0xC008 + vfn * 0x40;
-        case E1000_SRRCTL0:
+        case E1000_SRRCTL0_ALT:
             return 0xC00C + vfn * 0x40;
-        case E1000_RDH0:
+        case E1000_RDH0_ALT:
             return 0xC010 + vfn * 0x40;
-        case 0x2814: /* E1000_RXCTL0 */
+        case E1000_RXCTL0_ALT:
             return 0xC014 + vfn * 0x40;
-        case E1000_RDT0:
+        case E1000_RDT0_ALT:
             return 0xC018 + vfn * 0x40;
-        case E1000_RXDCTL0:
+        case E1000_RXDCTL0_ALT:
             return 0xC028 + vfn * 0x40;
-        case 0x2830: /* E1000_RQDPC0 */
+        case E1000_RQDPC0_ALT:
             return 0xC030 + vfn * 0x40;
-        case E1000_TDBAL0:
+        case E1000_TDBAL0_ALT:
             return 0xE000 + vfn * 0x40;
-        case E1000_TDBAH0:
+        case E1000_TDBAH0_ALT:
             return 0xE004 + vfn * 0x40;
-        case E1000_TDLEN0:
+        case E1000_TDLEN0_ALT:
             return 0xE008 + vfn * 0x40;
-        case E1000_TDH0:
+        case E1000_TDH0_ALT:
             return 0xE010 + vfn * 0x40;
-        case 0x3814: /* E1000_TXCTL0 */
+        case E1000_TXCTL0_ALT:
             return 0xE014 + vfn * 0x40;
-        case E1000_TDT0:
+        case E1000_TDT0_ALT:
             return 0xE018 + vfn * 0x40;
-        case E1000_TXDCTL0:
+        case E1000_TXDCTL0_ALT:
             return 0xE028 + vfn * 0x40;
-        case 0x3838: /* E1000_TDWBAL0 */
+        case E1000_TDWBAL0_ALT:
             return 0xE038 + vfn * 0x40;
-        case 0x383C: /* E1000_TWBAH0 */
+        case E1000_TDWBAH0_ALT:
             return 0xE03C + vfn * 0x40;
         case E1000_VFGPRC:
             return 0x10010 + vfn * 0x100;
@@ -135,6 +139,10 @@ static hwaddr igbvf_virt_to_phy(hwaddr addr, uint16_t vfn)
             return 0x10048 + vfn * 0x100;
         case E1000_VFGOTLBC:
             return 0x10050 + vfn * 0x100;
+        case 0x34E8: /* E1000_PBTWAC */
+            return 0x34E8;
+        case 0x24E8: /* E1000_PBRWAC */
+            return 0x24E8;
     }
     return addr;
 }
@@ -154,8 +162,7 @@ static uint64_t igbvf_mmio_read(void *opaque, hwaddr addr, unsigned size)
     PCIDevice *vf = PCI_DEVICE(opaque);
     PCIDevice *pf = pcie_sriov_get_pf(vf);
 
-    addr = igbvf_virt_to_phy(addr, pcie_sriov_vf_number(vf));
-
+    addr = vf_to_pf_addr(addr, pcie_sriov_vf_number(vf));
     return igb_mmio_read(pf, addr, size);
 }
 
@@ -165,8 +172,7 @@ static void igbvf_mmio_write(void *opaque, hwaddr addr,
     PCIDevice *vf = PCI_DEVICE(opaque);
     PCIDevice *pf = pcie_sriov_get_pf(vf);
 
-    addr = igbvf_virt_to_phy(addr, pcie_sriov_vf_number(vf));
-
+    addr = vf_to_pf_addr(addr, pcie_sriov_vf_number(vf));
     igb_mmio_write(pf, addr, val, size);
 }
 
