@@ -1981,72 +1981,6 @@ e1000e_eitr_should_postpone(E1000ECore *core, int idx)
                                      &core->eitr[idx]);
 }
 
-#if 0
-static void
-e1000e_msix_notify_one(E1000ECore *core, uint32_t cause, uint32_t int_cfg)
-{
-    uint32_t effective_eiac;
-
-    if (E1000_IVAR_ENTRY_VALID(int_cfg)) {
-        uint32_t vec = E1000_IVAR_ENTRY_VEC(int_cfg);
-        if (vec < E1000E_MSIX_VEC_NUM) {
-            if (!e1000e_eitr_should_postpone(core, vec)) {
-                trace_e1000e_irq_msix_notify_vec(vec);
-                msix_notify(core->owner, vec);
-            }
-        } else {
-            trace_e1000e_wrn_msix_vec_wrong(cause, int_cfg);
-        }
-    } else {
-        trace_e1000e_wrn_msix_invalid(cause, int_cfg);
-    }
-
-    if (core->mac[CTRL_EXT] & E1000_CTRL_EXT_EIAME) {
-        trace_e1000e_irq_iam_clear_eiame(core->mac[IAM], cause);
-        core->mac[IAM] &= ~cause;
-    }
-
-    trace_e1000e_irq_icr_clear_eiac(core->mac[ICR], core->mac[EIAC]);
-
-    effective_eiac = core->mac[EIAC] & cause;
-
-    core->mac[ICR] &= ~effective_eiac;
-
-    if (!(core->mac[CTRL_EXT] & E1000_CTRL_EXT_IAME)) {
-        core->mac[IMS] &= ~effective_eiac;
-    }
-}
-
-static void
-e1000e_msix_notify(E1000ECore *core, uint32_t causes)
-{
-    if (causes & E1000_ICR_RXQ0) {
-        e1000e_msix_notify_one(core, E1000_ICR_RXQ0,
-                               E1000_IVAR_RXQ0(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_RXQ1) {
-        e1000e_msix_notify_one(core, E1000_ICR_RXQ1,
-                               E1000_IVAR_RXQ1(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_TXQ0) {
-        e1000e_msix_notify_one(core, E1000_ICR_TXQ0,
-                               E1000_IVAR_TXQ0(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_TXQ1) {
-        e1000e_msix_notify_one(core, E1000_ICR_TXQ1,
-                               E1000_IVAR_TXQ1(core->mac[IVAR]));
-    }
-
-    if (causes & E1000_ICR_OTHER) {
-        e1000e_msix_notify_one(core, E1000_ICR_OTHER,
-                               E1000_IVAR_OTHER(core->mac[IVAR]));
-    }
-}
-#endif
-
 static inline void
 e1000e_fix_icr_asserted(E1000ECore *core)
 {
@@ -3389,7 +3323,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(GOTCL),
     e1000e_getreg(MGTPDC),
     e1000e_getreg(GCR),
-    e1000e_getreg(IVAR),
     e1000e_getreg(POEMB),
     e1000e_getreg(MFVAL),
     e1000e_getreg(FUNCTAG),
@@ -3632,7 +3565,6 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(TDBAH15),
     e1000e_putreg(TIMINCA),
     e1000e_putreg(IAM),
-    e1000e_putreg(IVAR),
     e1000e_putreg(TARC0),
     e1000e_putreg(TARC1),
     e1000e_putreg(FLSWDATA),
