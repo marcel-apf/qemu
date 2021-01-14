@@ -568,6 +568,12 @@
 #define E1000_VFGOTLBC6 0x10650
 #define E1000_VFGOTLBC7 0x10750
 
+/* These are fake addresses that, according to the specification, the device
+   is not using. They are used to distinguish between the PF and the VFs
+   accessing their VTIVAR register (which is the same address, 0x1700) */
+#define E1000_VTIVAR        0x11700
+#define E1000_VTIVAR_MISC   0x11720
+
 #define E1000_ERT      0x02008  /* Early Rx Threshold - RW */
 #define E1000_FCRTL    0x02160  /* Flow Control Receive Threshold Low - RW */
 #define E1000_FCRTL_A  0x00168  /* Alias to FCRTL */

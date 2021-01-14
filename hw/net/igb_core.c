@@ -3484,6 +3484,8 @@ static const readops e1000e_macreg_readops[] = {
     [VMOLR ... VMOLR + 7] = e1000e_mac_readreg,
     [WVBR] = e1000e_mac_read_clr4,
     [RQDPC ... RQDPC + IGB_NUM_QUEUES - 1] = e1000e_mac_read_clr4,
+    [VTIVAR ... VTIVAR + 7] = e1000e_mac_readreg,
+    [VTIVAR_MISC ... VTIVAR_MISC + 7] = e1000e_mac_readreg,
 };
 enum { E1000E_NREADOPS = ARRAY_SIZE(e1000e_macreg_readops) };
 
@@ -3908,6 +3910,8 @@ static const writeops e1000e_macreg_writeops[] = {
     [VTEICR5] = igb_set_vteicr,
     [VTEICR6] = igb_set_vteicr,
     [VTEICR7] = igb_set_vteicr,
+    [VTIVAR ... VTIVAR + 7] = e1000e_mac_writereg,
+    [VTIVAR_MISC ... VTIVAR_MISC + 7] = e1000e_mac_writereg,
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
