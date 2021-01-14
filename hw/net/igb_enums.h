@@ -212,7 +212,7 @@ enum {
     defreg(VFGOTLBC3),  defreg(VFGOTLBC4),  defreg(VFGOTLBC5),
     defreg(VFGOTLBC6),  defreg(VFGOTLBC7),
 
-    defreg(IVAR_MISC),
+    defreg(IVAR_MISC),  defreg(VTIVAR), defreg(VTIVAR_MISC),
 
     defreg(RDBAL0_ALT), defreg(RDBAL1_ALT), defreg(RDBAL2_ALT),
     defreg(RDBAL3_ALT),
