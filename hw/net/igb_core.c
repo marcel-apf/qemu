@@ -3445,7 +3445,7 @@ static const readops e1000e_macreg_readops[] = {
     [FTFT ... FTFT + 254]  = e1000e_mac_readreg,
     [PBM ... PBM + 10239]  = e1000e_mac_readreg,
     [RETA ... RETA + 31]   = e1000e_mac_readreg,
-    [RSSRK ... RSSRK + 31] = e1000e_mac_readreg,
+    [RSSRK ... RSSRK + 9] = e1000e_mac_readreg,
     [MAVTV0 ... MAVTV3]    = e1000e_mac_readreg,
     [EITR ... EITR + IGB_MSIX_VEC_NUM - 1] = igb_mac_eitr_read,
     [VTEICR0] = e1000e_mac_read_clr4,
@@ -3823,7 +3823,7 @@ static const writeops e1000e_macreg_writeops[] = {
     [FFLT ... FFLT + 10]     = e1000e_mac_writereg,
     [FTFT ... FTFT + 254]    = e1000e_mac_writereg,
     [RETA ... RETA + 31]     = e1000e_mac_writereg,
-    [RSSRK ... RSSRK + 31]   = e1000e_mac_writereg,
+    [RSSRK ... RSSRK + 9]   = e1000e_mac_writereg,
     [MAVTV0 ... MAVTV3]      = e1000e_mac_writereg,
     [EITR ... EITR + IGB_MSIX_VEC_NUM - 1] = igb_set_eitr,
 
