@@ -269,11 +269,6 @@ static int igb_add_pm_capability(PCIDevice *pdev, uint8_t offset, uint16_t pmc)
 static void igb_init_net_peer(IgbState *s, PCIDevice *pci_dev, uint8_t *macaddr)
 {
     DeviceState *dev = DEVICE(pci_dev);
-    NetClientState *nc;
-    int i;
-
-    // TODO: From where this value is set?
-    //s->conf.peers.queues = 16;
 
     s->nic = qemu_new_nic(&net_igb_info, &s->conf,
         object_get_typename(OBJECT(s)), dev->id, s);
@@ -284,24 +279,6 @@ static void igb_init_net_peer(IgbState *s, PCIDevice *pci_dev, uint8_t *macaddr)
     memcpy(s->core.permanent_mac, macaddr, sizeof(s->core.permanent_mac));
 
     qemu_format_nic_info_str(qemu_get_queue(s->nic), macaddr);
-    s->core.has_vnet = true;
-
-    for (i = 0; i < s->conf.peers.queues; i++) {
-        nc = qemu_get_subqueue(s->nic, i);
-        if (!nc->peer || !qemu_has_vnet_hdr(nc->peer)) {
-            s->core.has_vnet = false;
-            trace_igb_cfg_support_virtio(false);
-            return;
-        }
-    }
-
-    trace_igb_cfg_support_virtio(true);
-
-    for (i = 0; i < s->conf.peers.queues; i++) {
-        nc = qemu_get_subqueue(s->nic, i);
-        qemu_set_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr));
-        qemu_using_vnet_hdr(nc->peer, true);
-    }
 }
 
 /* EEPROM (NVM) contents documented in section 6.1, table 6-1:

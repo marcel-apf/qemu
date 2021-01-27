@@ -87,7 +87,6 @@ struct E1000Core {
 
     struct NetRxPkt *rx_pkt;
 
-    bool has_vnet;
     int max_queue_num;
 
     /* Interrupt moderation management */
