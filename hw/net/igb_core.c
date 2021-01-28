@@ -1166,7 +1166,6 @@ e1000e_build_rx_metadata(E1000ECore *core,
                          uint16_t *ip_id,
                          uint16_t *vlan_tag)
 {
-    struct virtio_net_hdr *vhdr;
     bool isip4, isip6, istcp, isudp;
     uint32_t pkt_type;
 
@@ -1229,15 +1228,6 @@ e1000e_build_rx_metadata(E1000ECore *core,
 
     if (!net_rx_pkt_has_virt_hdr(pkt)) {
         trace_e1000e_rx_metadata_no_virthdr();
-        e1000e_verify_csum_in_sw(core, pkt, status_flags, istcp, isudp);
-        goto func_exit;
-    }
-
-    vhdr = net_rx_pkt_get_vhdr(pkt);
-
-    if (!(vhdr->flags & VIRTIO_NET_HDR_F_DATA_VALID) &&
-        !(vhdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM)) {
-        trace_e1000e_rx_metadata_virthdr_no_csum_info();
         e1000e_verify_csum_in_sw(core, pkt, status_flags, istcp, isudp);
         goto func_exit;
     }
@@ -1609,18 +1599,6 @@ e1000e_write_packet_to_guest(E1000ECore *core, struct NetRxPkt *pkt,
     e1000e_update_rx_stats(core, size, total_size);
 }
 
-static inline void
-e1000e_rx_fix_l4_csum(E1000ECore *core, struct NetRxPkt *pkt)
-{
-    if (net_rx_pkt_has_virt_hdr(pkt)) {
-        struct virtio_net_hdr *vhdr = net_rx_pkt_get_vhdr(pkt);
-
-        if (vhdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM) {
-            net_rx_pkt_fix_l4_csum(pkt);
-        }
-    }
-}
-
 ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
 {
     static const int maximum_ethernet_hdr_len = (14 + 4);
@@ -1690,7 +1668,6 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
         e1000x_fcs_len(core->mac);
 
     if (e1000e_has_rxbufs(core, rxr.i, total_size)) {
-        e1000e_rx_fix_l4_csum(core, core->rx_pkt);
 
         e1000e_write_packet_to_guest(core, core->rx_pkt, &rxr, &rss_info);
 
