@@ -598,7 +598,6 @@
 #define E1000_RXDCTL   0x02828  /* RX Descriptor Control queue 0 - RW */
 #define E1000_RXDCTL1  0x02928  /* RX Descriptor Control queue 1 - RW */
 #define E1000_RADV     0x0282C  /* RX Interrupt Absolute Delay Timer - RW */
-#define E1000_RSRPD    0x02C00  /* RX Small Packet Detect - RW */
 #define E1000_RAID     0x02C08  /* Receive Ack Interrupt Delay - RW */
 #define E1000_TXDMAC   0x03000  /* TX DMA Control - RW */
 #define E1000_KABGTXD  0x03004  /* AFE Band Gap Transmit Ref Data */
