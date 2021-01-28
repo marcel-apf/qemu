@@ -68,7 +68,7 @@ enum {
     defreg(TSCTC),   defreg(RXCSUM),  defreg(FUNCTAG), defreg(GSCL_1),
     defreg(GSCL_2),  defreg(GSCL_3),  defreg(GSCL_4),  defreg(GSCN_0),
     defreg(GSCN_1),  defreg(GSCN_2),  defreg(GSCN_3),  defreg(GCR2),
-    defreg(RAID),    defreg(RSRPD),   defreg(TIDV),    defreg(EITR),
+    defreg(RAID),    defreg(TIDV),    defreg(EITR),
     defreg(MRQC),    defreg(RETA),    defreg(RSSRK),   defreg(RDBAH1),
     defreg(RDLEN1),  defreg(RDH1),    defreg(RDT1),
     defreg(PBACLR),  defreg(FCAL),    defreg(FCAH),    defreg(FCT),

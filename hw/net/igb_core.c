@@ -1673,11 +1673,6 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
 
         retval = orig_size;
 
-        /* Perform small receive detection (RSRPD) */
-        if (total_size < core->mac[RSRPD]) {
-            n |= E1000_ICS_SRPD;
-        }
-
         /* Perform ACK receive detection */
         if  (!(core->mac[RFCTL] & E1000_RFCTL_ACK_DIS) &&
              (e1000e_is_tcp_ack(core, core->rx_pkt))) {
@@ -2493,12 +2488,6 @@ e1000e_set_16bit(E1000ECore *core, int index, uint32_t val)
 }
 
 static void
-e1000e_set_12bit(E1000ECore *core, int index, uint32_t val)
-{
-    core->mac[index] = val & 0xfff;
-}
-
-static void
 e1000e_set_vet(E1000ECore *core, int index, uint32_t val)
 {
     core->mac[VET] = val & 0xffff;
@@ -3016,7 +3005,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(RXCSUM),
     e1000e_getreg(GSCL_3),
     e1000e_getreg(GSCN_2),
-    e1000e_getreg(RSRPD),
     e1000e_getreg(FCAH),
     e1000e_getreg(FCRTH),
     e1000e_getreg(FLOP),
@@ -3694,7 +3682,6 @@ static const writeops e1000e_macreg_writeops[] = {
     [PSRCTL]   = e1000e_set_psrctl,
     [RXCSUM]   = e1000e_set_rxcsum,
     [RAID]     = e1000e_set_16bit,
-    [RSRPD]    = e1000e_set_12bit,
     [TIDV]     = e1000e_set_tidv,
     [TDLEN0]   = e1000e_set_dlen,
     [TDLEN1]   = e1000e_set_dlen,
