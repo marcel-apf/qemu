@@ -243,10 +243,6 @@ e1000e_intrmgr_delay_rx_causes(E1000ECore *core, uint32_t *causes)
                        E1000_ICR_RXQ1 |
                        E1000_ICR_RXT0;
 
-    if (!(core->mac[RFCTL] & E1000_RFCTL_ACK_DIS)) {
-        delayable_causes |= E1000_ICR_ACK;
-    }
-
     /* Clean up all causes that may be delayed */
     core->delayed_causes |= *causes & delayable_causes;
     *causes &= ~delayable_causes;
@@ -1149,10 +1145,6 @@ e1000e_is_tcp_ack(E1000ECore *core, struct NetRxPkt *rx_pkt)
         return false;
     }
 
-    if (core->mac[RFCTL] & E1000_RFCTL_ACK_DATA_DIS) {
-        return !net_rx_pkt_has_tcp_data(rx_pkt);
-    }
-
     return true;
 }
 
@@ -1672,12 +1664,6 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
         e1000e_write_packet_to_guest(core, core->rx_pkt, &rxr, &rss_info);
 
         retval = orig_size;
-
-        /* Perform ACK receive detection */
-        if  (!(core->mac[RFCTL] & E1000_RFCTL_ACK_DIS) &&
-             (e1000e_is_tcp_ack(core, core->rx_pkt))) {
-            n |= E1000_ICS_ACK;
-        }
 
         /* Check if receive descriptor minimum threshold hit */
         rdmts_hit = e1000e_rx_descr_threshold_hit(core, rxr.i);
