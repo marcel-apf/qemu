@@ -690,37 +690,42 @@ e1000e_process_tx_desc(E1000ECore *core,
     }
 }
 
-static inline uint32_t igb_tx_wb_interrupt_cause(E1000ECore *core,
-                                                 int queue_idx)
+#define _IVAR_QUEUE_ENTRY(q, tx) ((q) < 8 ? (q)*4 + tx : ((q)-8)*4 + 2 + tx)
+
+#define IVAR_RX_QUEUE_ENTRY(q)  _IVAR_QUEUE_ENTRY(q, 0)
+#define IVAR_TX_QUEUE_ENTRY(q)  _IVAR_QUEUE_ENTRY(q, 1)
+
+//#define IVAR_GET_ENTRY(i) ((core->mac[IVAR + (n)/4] >> (8 * ((n)%4))) & 0xFF)
+
+#define IVAR_VALID_ENTRY(x) !!((x) & 0x80)
+
+static uint32_t igb_tx_wb_interrupt_cause(E1000ECore *core, int queue_idx)
 {
-    uint32_t n, int_alloc = 0;
+    uint32_t n, ent = 0;
 
     if (!msix_enabled(core->owner)) {
         return BIT(queue_idx);
     }
 
-    n = ((queue_idx < 8) ? (queue_idx*4 + 1) : ((queue_idx-8)*4 + 3));
+    n = IVAR_TX_QUEUE_ENTRY(queue_idx);
+    ent = (core->mac[IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
 
-    int_alloc = (core->mac[IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
-
-    return (int_alloc & BIT(7)) ? BIT(int_alloc & 0x1f) : 0;
+    return IVAR_VALID_ENTRY(ent) ? BIT(ent & 0x1f) : 0;
 }
 
-static inline uint32_t igb_rx_wb_interrupt_cause(E1000ECore *core,
-                                                 int queue_idx,
-                                                 bool min_threshold_hit)
+static uint32_t igb_rx_wb_interrupt_cause(E1000ECore *core, int queue_idx,
+                                          bool min_threshold_hit)
 {
-    uint32_t n, int_alloc = 0;
+    uint32_t n, ent = 0;
 
     if (!msix_enabled(core->owner)) {
         return BIT(queue_idx);
     }
 
-    n = ((queue_idx < 8) ? (queue_idx*4) : ((queue_idx-8)*4 + 2));
+    n = IVAR_RX_QUEUE_ENTRY(queue_idx);
+    ent = (core->mac[IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
 
-    int_alloc = (core->mac[IVAR + n / 4] >> (8 * (n % 4))) & 0xff;
-
-    return (int_alloc & BIT(7)) ? BIT(int_alloc & 0x1f) : 0;
+    return IVAR_VALID_ENTRY(ent) ? BIT(ent & 0x1f) : 0;
 }
 
 #if 0
@@ -838,8 +843,7 @@ typedef struct E1000E_TxRing_st {
 static inline int
 e1000e_mq_queue_idx(int base_reg_idx, int reg_idx)
 {
-    // TODO: Check if still works with 15 queues.
-    return (reg_idx - base_reg_idx) / (0x100 >> 2);
+    return (reg_idx - base_reg_idx) / 16;
 }
 
 static inline void igb_tx_ring_init(E1000ECore *core,
@@ -1005,8 +1009,26 @@ e1000e_rx_l4_cso_enabled(E1000ECore *core)
     return !!(core->mac[RXCSUM] & E1000_RXCSUM_TUOFLD);
 }
 
-static bool
-e1000e_receive_filter(E1000ECore *core, const uint8_t *buf, int size)
+static bool igb_vf_receive_filter(E1000ECore *core, const uint8_t *buf)
+{
+    uint32_t ra[2], *rp;
+
+    for (rp = core->mac + RA_VF; rp < core->mac + RA_VF + 16; rp += 2) {
+        if (!(rp[1] & E1000_RAH_AV)) {
+            continue;
+        }
+        ra[0] = cpu_to_le32(rp[0]);
+        ra[1] = cpu_to_le16(rp[1] & 0xFFFF);
+
+        if (!memcmp(buf, (uint8_t *)ra, 6)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool e1000e_receive_filter(E1000ECore *core, const uint8_t *buf)
 {
     uint32_t rctl = core->mac[RCTL];
 
@@ -1046,7 +1068,11 @@ e1000e_receive_filter(E1000ECore *core, const uint8_t *buf, int size)
         g_assert_not_reached();
     }
 
-    return e1000x_rx_group_filter(core->mac, buf);
+    if (e1000x_rx_group_filter(core->mac, buf)) {
+        return true;
+    }
+
+    return igb_vf_receive_filter(core, buf);
 }
 
 static inline void
@@ -1591,15 +1617,29 @@ e1000e_write_packet_to_guest(E1000ECore *core, struct NetRxPkt *pkt,
     e1000e_update_rx_stats(core, size, total_size);
 }
 
+static uint8_t get_vf_queue(uint8_t vf)
+{
+    const uint8_t bit_to_vf[] = {
+        [0x01] = 0, [0x02] = 1, [0x04] = 2, [0x08] = 3,
+        [0x10] = 4, [0x20] = 5, [0x40] = 6, [0x80] = 7
+    };
+
+    return bit_to_vf[vf];
+}
+
 ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
 {
+    static const uint64_t brd_addr = 0xFFFFFFFFFFFFL;
     static const int maximum_ethernet_hdr_len = (14 + 4);
     /* Min. octets in an ethernet frame sans FCS */
     static const int min_buf_size = 60;
 
+    struct vf_select_table *vst;
+    uint16_t queues = 0;
     uint32_t n = 0;
     uint8_t min_buf[min_buf_size];
     struct iovec min_iov;
+    struct eth_header *ehdr;
     uint8_t *filter_buf;
     size_t size, orig_size;
     size_t iov_ofs = 0;
@@ -1608,6 +1648,8 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
     size_t total_size;
     ssize_t retval;
     bool rdmts_hit;
+    bool is_brd;
+    int i;
 
     trace_e1000e_rx_receive_iov(iovcnt);
 
@@ -1640,10 +1682,10 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
         return orig_size;
     }
 
-    net_rx_pkt_set_packet_type(core->rx_pkt,
-        get_eth_packet_type(PKT_GET_ETH_HDR(filter_buf)));
+    ehdr = PKT_GET_ETH_HDR(filter_buf);
+    net_rx_pkt_set_packet_type(core->rx_pkt, get_eth_packet_type(ehdr));
 
-    if (!e1000e_receive_filter(core, filter_buf, size)) {
+    if (!e1000e_receive_filter(core, filter_buf)) {
         trace_e1000e_rx_flt_dropped();
         return orig_size;
     }
@@ -1651,30 +1693,63 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
     net_rx_pkt_attach_iovec_ex(core->rx_pkt, iov, iovcnt, iov_ofs,
                                e1000x_vlan_enabled(core->mac), core->vet);
 
-    e1000e_rss_parse_packet(core, core->rx_pkt, &rss_info);
-    igb_rx_ring_init(core, &rxr, rss_info.queue);
-
-    trace_e1000e_rx_rss_dispatched_to_queue(rxr.i->idx);
-
-    total_size = net_rx_pkt_get_total_len(core->rx_pkt) +
-        e1000x_fcs_len(core->mac);
-
-    if (e1000e_has_rxbufs(core, rxr.i, total_size)) {
-
-        e1000e_write_packet_to_guest(core, core->rx_pkt, &rxr, &rss_info);
-
-        retval = orig_size;
-
-        /* Check if receive descriptor minimum threshold hit */
-        rdmts_hit = e1000e_rx_descr_threshold_hit(core, rxr.i);
-        n |= igb_rx_wb_interrupt_cause(core, rxr.i->idx, rdmts_hit);
-
-        trace_e1000e_rx_written_to_guest(n);
+    if (!pcie_sriov_is_iov(core->owner)) {
+        e1000e_rss_parse_packet(core, core->rx_pkt, &rss_info);
+        queues |= BIT(rss_info.queue);
     } else {
-        n |= E1000_ICS_RXO;
-        retval = 0;
+        is_brd = !memcmp(ehdr->h_dest, &brd_addr, 6);
 
-        trace_e1000e_rx_not_written_to_guest(n);
+        for (i = ARRAY_SIZE(core->vf_select_table)-1; i >= 0; i--) {
+            vst = &core->vf_select_table[i];
+            if ((vst->vf != 0) &&
+                (is_brd || !memcmp(ehdr->h_dest, &vst->macaddr, 6))) {
+                queues |= BIT(get_vf_queue(vst->vf));
+                /* Stop scan if an unicast address belong to a vf was found */
+                if (!is_brd) {
+                    break;
+                }
+            }
+        }
+
+        if (is_brd || (queues == 0)) {
+            //e1000e_rss_parse_packet(core, core->rx_pkt, &rss_info);
+            // TODO: fix RETA?
+            rss_info.queue = core->owner->exp.sriov_pf.num_vfs;
+            queues |= BIT(rss_info.queue);
+        }
+    }
+
+    for (i = 0; i < E1000E_NUM_QUEUES; i++) {
+        if (queues & BIT(i)) {
+            rss_info.enabled = false;
+            rss_info.hash = 0;
+            rss_info.queue = i;
+            rss_info.type = 0;
+
+            igb_rx_ring_init(core, &rxr, i);
+
+            trace_e1000e_rx_rss_dispatched_to_queue(rxr.i->idx);
+
+            total_size = net_rx_pkt_get_total_len(core->rx_pkt) +
+                e1000x_fcs_len(core->mac);
+
+            if (e1000e_has_rxbufs(core, rxr.i, total_size)) {
+                e1000e_write_packet_to_guest(core, core->rx_pkt, &rxr,
+                    &rss_info);
+
+                retval = orig_size;
+
+                /* Check if receive descriptor minimum threshold hit */
+                rdmts_hit = e1000e_rx_descr_threshold_hit(core, rxr.i);
+                n |= igb_rx_wb_interrupt_cause(core, rxr.i->idx, rdmts_hit);
+
+                trace_e1000e_rx_written_to_guest(n);
+            } else {
+                //n |= E1000_ICS_RXO;
+                retval = 0;
+                trace_e1000e_rx_not_written_to_guest(n);
+            }
+        }
     }
 
     if (!e1000e_intrmgr_delay_rx_causes(core, &n)) {
@@ -1813,6 +1888,36 @@ e1000e_set_rfctl(E1000ECore *core, int index, uint32_t val)
     }
 
     core->mac[RFCTL] = val;
+}
+
+static void update_vf_select_table(E1000ECore *core)
+{
+    struct vf_select_table *vst;
+    uint64_t macaddr;
+    uint32_t rah;
+    int i;
+
+    for (i = 0; i < ARRAY_SIZE(core->vf_select_table); i++) {
+        rah = core->mac[RA_VF + i*2 + 1];
+        if (rah & 0x80000000) { /* Address Valid */
+            macaddr = cpu_to_le16(rah & 0xFFFF);
+            macaddr = (macaddr << 32) | cpu_to_le32(core->mac[RA_VF + i*2]);
+
+            vst = &core->vf_select_table[i];
+            vst->macaddr = macaddr;
+            vst->vf = (rah >> 18) & 0xFF;
+        }
+    }
+}
+
+static void igb_mac_set_recv_addr(E1000ECore *core, int index, uint32_t val)
+{
+    core->mac[index] = val;
+
+    /* Update the VF-Select table only after a write to a High register */
+    if ((index % 2) == 1) {
+        update_vf_select_table(core);
+    }
 }
 
 static void
@@ -1963,7 +2068,9 @@ static void igb_send_msi(E1000ECore *core, bool msix)
             } else {
                 vfn = 7 - (vector-1)/3;
                 vf = pcie_sriov_get_vf(core->owner, vfn);
-                msix_notify(vf, (vector-1)%3);
+                if (vf) { // TODO: Remove this. vf should not be null.
+                    msix_notify(vf, (vector-1)%3);
+                }
             }
 
             trace_e1000e_irq_icr_clear_eiac(core->mac[EICR],
@@ -2085,10 +2192,10 @@ static void igb_vf_reset(E1000ECore *core, uint16_t vfn)
 
 static void mailbox_interrupt_to_vf(E1000ECore *core, uint16_t vfn)
 {
-    uint32_t vector = core->mac[VTIVAR_MISC + vfn] & 0xFF;
+    uint32_t ent = core->mac[VTIVAR_MISC + vfn] & 0xFF;
 
-    if (vector & BIT(7)) {
-        core->mac[EICR] |= (vector & 0x3) << (22 - vfn*3);
+    if (IVAR_VALID_ENTRY(ent)) {
+        core->mac[EICR] |= (ent & 0x3) << (22 - vfn*3);
         igb_update_interrupt_state(core);
     }
 }
@@ -2278,6 +2385,35 @@ static void igb_set_vteicr(E1000ECore *core, int index, uint32_t val)
     igb_set_eicr(core, EICR, (val & 0x7) << (22 - vfn*3));
 }
 
+static void igb_set_vtivar(E1000ECore *core, int index, uint32_t val)
+{
+    uint16_t vfn = (index - VTIVAR);
+    uint16_t qn = vfn;
+    uint8_t ent;
+    int n;
+
+    core->mac[index] = val;
+
+    /* Get assigned vector associated with queue Rx#0. */
+    ent = val & 0xFF;
+    if (IVAR_VALID_ENTRY(ent)) {
+        n = IVAR_RX_QUEUE_ENTRY(qn);
+        ent = 0x80 | (24 - vfn*3 - (2-(ent & 0x7)));
+        core->mac[IVAR + n/4] |= ent << 8*(n%4);
+    }
+
+    /* Get assigned vector associated with queue Tx#0 */
+    ent = (val >> 8) & 0xFF;
+    if (IVAR_VALID_ENTRY(ent)) {
+        n = IVAR_TX_QUEUE_ENTRY(qn);
+        ent = 0x80 | (24 - vfn*3 - (2-(ent & 0x7)));
+        core->mac[IVAR + n/4] |= ent << 8*(n%4);
+    }
+
+    /* Ignoring assigned vectors associated with queues Rx#1 and Tx#1 for
+     * now. */
+}
+
 static inline void
 e1000e_autoneg_timer(void *opaque)
 {
@@ -2431,6 +2567,8 @@ e1000e_set_ctrlext(E1000ECore *core, int index, uint32_t val)
 {
     trace_e1000e_link_set_ext_params(!!(val & E1000_CTRL_EXT_ASDCHK),
                                      !!(val & E1000_CTRL_EXT_SPD_BYPS));
+
+    // TODO: PFRSTD
 
     /* Zero self-clearing bits */
     val &= ~(E1000_CTRL_EXT_ASDCHK | E1000_CTRL_EXT_EE_RST);
@@ -2778,8 +2916,7 @@ e1000e_mac_writereg(E1000ECore *core, int index, uint32_t val)
     core->mac[index] = val;
 }
 
-static void
-e1000e_mac_setmacaddr(E1000ECore *core, int index, uint32_t val)
+static void igb_mac_set_macaddr(E1000ECore *core, int index, uint32_t val)
 {
     uint32_t macaddr[2];
 
@@ -2787,6 +2924,7 @@ e1000e_mac_setmacaddr(E1000ECore *core, int index, uint32_t val)
 
     macaddr[0] = cpu_to_le32(core->mac[RA]);
     macaddr[1] = cpu_to_le32(core->mac[RA + 1]);
+
     qemu_format_nic_info_str(qemu_get_queue(core->owner_nic),
         (uint8_t *) macaddr);
 
@@ -3130,6 +3268,22 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TXDCTL13),
     e1000e_getreg(TXDCTL14),
     e1000e_getreg(TXDCTL15),
+    e1000e_getreg(TXCTL0),
+    e1000e_getreg(TXCTL1),
+    e1000e_getreg(TXCTL2),
+    e1000e_getreg(TXCTL3),
+    e1000e_getreg(TXCTL4),
+    e1000e_getreg(TXCTL5),
+    e1000e_getreg(TXCTL6),
+    e1000e_getreg(TXCTL7),
+    e1000e_getreg(TXCTL8),
+    e1000e_getreg(TXCTL9),
+    e1000e_getreg(TXCTL10),
+    e1000e_getreg(TXCTL11),
+    e1000e_getreg(TXCTL12),
+    e1000e_getreg(TXCTL13),
+    e1000e_getreg(TXCTL14),
+    e1000e_getreg(TXCTL15),
     e1000e_getreg(VTCTRL0),
     e1000e_getreg(VTCTRL1),
     e1000e_getreg(VTCTRL2),
@@ -3317,6 +3471,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(FLSWCNT),
     e1000e_getreg(GPIE),
     e1000e_getreg(TXPBS),
+    e1000e_getreg(RLPML),
 
     [TOTH]    = e1000e_mac_read_clr8,
     [GOTCH]   = e1000e_mac_read_clr8,
@@ -3375,6 +3530,7 @@ static const readops e1000e_macreg_readops[] = {
     [IP6AT ... IP6AT + 3]  = e1000e_mac_readreg,
     [IP4AT ... IP4AT + 6]  = e1000e_mac_readreg,
     [RA ... RA + 31]       = e1000e_mac_readreg,
+    [RA_VF ... RA_VF + 31] = e1000e_mac_readreg,
     [WUPM ... WUPM + 31]   = e1000e_mac_readreg,
     [MTA ... MTA + 127]    = e1000e_mac_readreg,
     [VFTA ... VFTA + 127]  = e1000e_mac_readreg,
@@ -3419,7 +3575,7 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(QDE),
     e1000e_getreg(DTXSWC),
     e1000e_getreg(RPLOLR),
-    e1000e_getreg(VLVF),
+    [VLVF ... VLVF + 31] = e1000e_mac_readreg,
     [VMVIR ... VMVIR + 7] = e1000e_mac_readreg,
     [VMOLR ... VMOLR + 7] = e1000e_mac_readreg,
     [WVBR] = e1000e_mac_read_clr4,
@@ -3567,6 +3723,22 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(TXDCTL13),
     e1000e_putreg(TXDCTL14),
     e1000e_putreg(TXDCTL15),
+    e1000e_putreg(TXCTL0),
+    e1000e_putreg(TXCTL1),
+    e1000e_putreg(TXCTL2),
+    e1000e_putreg(TXCTL3),
+    e1000e_putreg(TXCTL4),
+    e1000e_putreg(TXCTL5),
+    e1000e_putreg(TXCTL6),
+    e1000e_putreg(TXCTL7),
+    e1000e_putreg(TXCTL8),
+    e1000e_putreg(TXCTL9),
+    e1000e_putreg(TXCTL10),
+    e1000e_putreg(TXCTL11),
+    e1000e_putreg(TXCTL12),
+    e1000e_putreg(TXCTL13),
+    e1000e_putreg(TXCTL14),
+    e1000e_putreg(TXCTL15),
     e1000e_putreg(TIPG),
     e1000e_putreg(RXSTMPH),
     e1000e_putreg(RXSTMPL),
@@ -3584,9 +3756,9 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(TSYNCTXCTL),
     e1000e_putreg(EXTCNF_SIZE),
     e1000e_putreg(EEMNGCTL),
-    e1000e_putreg(RA),
     e1000e_putreg(GPIE),
     e1000e_putreg(TXPBS),
+    e1000e_putreg(RLPML),
 
     [TDH0]     = e1000e_set_16bit,
     [TDH1]     = e1000e_set_16bit,
@@ -3747,11 +3919,13 @@ static const writeops e1000e_macreg_writeops[] = {
     [EEWR]     = e1000e_set_eewr,
     [CTRL_DUP] = igb_set_ctrl,
     [RFCTL]    = e1000e_set_rfctl,
-    [RA + 1]   = e1000e_mac_setmacaddr,
 
     [IP6AT ... IP6AT + 3]    = e1000e_mac_writereg,
     [IP4AT ... IP4AT + 6]    = e1000e_mac_writereg,
+    [RA]                     = e1000e_mac_writereg,
+    [RA + 1]                 = igb_mac_set_macaddr,
     [RA + 2 ... RA + 31]     = e1000e_mac_writereg,
+    [RA_VF ... RA_VF + 31]   = igb_mac_set_recv_addr,
     [WUPM ... WUPM + 31]     = e1000e_mac_writereg,
     [MTA ... MTA + 127]      = e1000e_mac_writereg,
     [VFTA ... VFTA + 127]    = e1000e_mac_writereg,
@@ -3790,9 +3964,10 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(QDE),
     e1000e_putreg(DTXSWC),
     e1000e_putreg(RPLOLR),
-    e1000e_putreg(VLVF),
+    [VLVF ... VLVF + 31] = e1000e_mac_writereg,
     [VMVIR ... VMVIR + 7] = e1000e_mac_writereg,
     [VMOLR ... VMOLR + 7] = e1000e_mac_writereg,
+    [UTA ... UTA + 127] = e1000e_mac_writereg,
     [VTCTRL0] = igb_set_vtctrl,
     [VTCTRL1] = igb_set_vtctrl,
     [VTCTRL2] = igb_set_vtctrl,
@@ -3849,8 +4024,8 @@ static const writeops e1000e_macreg_writeops[] = {
     [VTEICR5] = igb_set_vteicr,
     [VTEICR6] = igb_set_vteicr,
     [VTEICR7] = igb_set_vteicr,
-    [VTIVAR ... VTIVAR + 7] = e1000e_mac_writereg,
-    [VTIVAR_MISC ... VTIVAR_MISC + 7] = e1000e_mac_writereg,
+    [VTIVAR ... VTIVAR + 7] = igb_set_vtivar,
+    [VTIVAR_MISC ... VTIVAR_MISC + 7] = e1000e_mac_writereg
 };
 enum { E1000E_NWRITEOPS = ARRAY_SIZE(e1000e_macreg_writeops) };
 
@@ -3863,19 +4038,97 @@ enum { MAC_ACCESS_PARTIAL = 1 };
 static const uint16_t mac_reg_access[E1000E_MAC_SIZE] = {
     /* Alias index offsets */
     [FCRTL_A] = 0x07fe, [FCRTH_A] = 0x0802,
-    [RDH0_A]  = 0x09bc, [RDT0_A]  = 0x09bc, [RDTR_A] = 0x09c6,
+    //[RDH0_A]  = 0x09bc, [RDT0_A]  = 0x09bc, [RDTR_A] = 0x09c6,
     [RDFH_A]  = 0xe904, [RDFT_A]  = 0xe904,
-    [TDH_A]   = 0x0cf8, [TDT_A]   = 0x0cf8, [TIDV_A] = 0x0cf8,
+    //[TDH_A]   = 0x0cf8, [TDT_A]   = 0x0cf8,
+    [TIDV_A] = 0x0cf8,
     [TDFH_A]  = 0xed00, [TDFT_A]  = 0xed00,
-    [RA_A ... RA_A + 31]      = 0x14f0,
+    [RA_ALT ... RA_ALT + 31]      = 0x14f0,
     [VFTA_A ... VFTA_A + 127] = 0x1400,
-    [RDBAH0_A ... RDLEN0_A] = 0x09bc,
-    [TDBAL_A ... TDLEN_A]   = 0x0cf8,
+    //[RDBAH0_A ... RDLEN0_A] = 0x09bc,
+    //[TDBAL_A ... TDLEN_A]   = 0x0cf8,
 
+    //[CTRL_ALT] = -0x0001,
+    //[ICR_ALT] = 0x0510,
+    //[ICS_ALT] = 0x050F,
+    //[IMS_ALT] = 0x050E,
+    //[IMC_ALT] = 0x050D,
+    //[IAM_ALT] = 0x050C,
+    //[FCRTL_ALT] = 0x07FE,
     [RDBAL0_ALT] = 0x2600,
+    [RDBAH0_ALT] = 0x2600,
+    [RDLEN0_ALT] = 0x2600,
+    [SRRCTL0_ALT] = 0x2600,
+    [RDH0_ALT] = 0x2600,
+    [RDT0_ALT] = 0x2600,
+    [RXDCTL0_ALT] = 0x2600,
+    [RXCTL0_ALT] = 0x2600,
+    [RQDPC0_ALT] = 0x2600,
     [RDBAL1_ALT] = 0x25D0,
     [RDBAL2_ALT] = 0x25A0,
     [RDBAL3_ALT] = 0x2570,
+    [RDBAH1_ALT] = 0x25D0,
+    [RDBAH2_ALT] = 0x25A0,
+    [RDBAH3_ALT] = 0x2570,
+    [RDLEN1_ALT] = 0x25D0,
+    [RDLEN2_ALT] = 0x25A0,
+    [RDLEN3_ALT] = 0x2570,
+    [SRRCTL1_ALT] = 0x25D0,
+    [SRRCTL2_ALT] = 0x25A0,
+    [SRRCTL3_ALT] = 0x2570,
+    [RDH1_ALT] = 0x25D0,
+    [RDH2_ALT] = 0x25A0,
+    [RDH3_ALT] = 0x2570,
+    [RDT1_ALT] = 0x25D0,
+    [RDT2_ALT] = 0x25A0,
+    [RDT3_ALT] = 0x2570,
+    [RXDCTL1_ALT] = 0x25D0,
+    [RXDCTL2_ALT] = 0x25A0,
+    [RXDCTL3_ALT] = 0x2570,
+    [RXCTL1_ALT] = 0x25D0,
+    [RXCTL2_ALT] = 0x25A0,
+    [RXCTL3_ALT] = 0x2570,
+    [RQDPC1_ALT] = 0x25D0,
+    [RQDPC2_ALT] = 0x25A0,
+    [RQDPC3_ALT] = 0x2570,
+    //[MTA_ALT] = 0x1400,
+    //[VFTA_ALT] = 0x1400,
+    [TDBAL0_ALT] = 0x2A00,
+    [TDBAH0_ALT] = 0x2A00,
+    [TDLEN0_ALT] = 0x2A00,
+    [TDH0_ALT] = 0x2A00,
+    [TDT0_ALT] = 0x2A00,
+    [TXDCTL0_ALT] = 0x2A00,
+    [TXCTL0_ALT] = 0x2A00,
+    [TDWBAL0_ALT] = 0x2A00,
+    [TDWBAH0_ALT] = 0x2A00,
+    [TDBAL1_ALT] = 0x29D0,
+    [TDBAL2_ALT] = 0x29A0,
+    [TDBAL3_ALT] = 0x2970,
+    [TDBAH1_ALT] = 0x29D0,
+    [TDBAH2_ALT] = 0x29A0,
+    [TDBAH3_ALT] = 0x2970,
+    [TDLEN1_ALT] = 0x29D0,
+    [TDLEN2_ALT] = 0x29A0,
+    [TDLEN3_ALT] = 0x2970,
+    [TDH1_ALT] = 0x29D0,
+    [TDH2_ALT] = 0x29A0,
+    [TDH3_ALT] = 0x2970,
+    [TDT1_ALT] = 0x29D0,
+    [TDT2_ALT] = 0x29A0,
+    [TDT3_ALT] = 0x2970,
+    [TXDCTL1_ALT] = 0x29D0,
+    [TXDCTL2_ALT] = 0x29A0,
+    [TXDCTL3_ALT] = 0x2970,
+    [TXCTL1_ALT] = 0x29D0,
+    [TXCTL2_ALT] = 0x29A0,
+    [TXCTL3_ALT] = 0x29D0,
+    [TDWBAL1_ALT] = 0x29D0,
+    [TDWBAL2_ALT] = 0x29A0,
+    [TDWBAL3_ALT] = 0x2970,
+    [TDWBAH1_ALT] = 0x29D0,
+    [TDWBAH2_ALT] = 0x29A0,
+    [TDWBAH3_ALT] = 0x2970,
 
     /* Access options */
     [RDFH]  = MAC_ACCESS_PARTIAL,    [RDFT]  = MAC_ACCESS_PARTIAL,
@@ -3896,10 +4149,6 @@ static const uint16_t mac_reg_access[E1000E_MAC_SIZE] = {
 void igb_core_write(E1000ECore *core, hwaddr addr, uint64_t val, unsigned size)
 {
     uint16_t index = e1000e_get_reg_index_with_offset(mac_reg_access, addr);
-
-if (mac_reg_access[addr >> 2] & 0xfffe) {
-    fprintf(stderr, "Alias 0x%04lX -> 0x%04X\n", addr, index << 2);
-}
 
     if (index < E1000E_NWRITEOPS && e1000e_macreg_writeops[index]) {
         if (mac_reg_access[index] & MAC_ACCESS_PARTIAL) {
@@ -4063,21 +4312,21 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [FLSWCTL]       = BIT(30) | BIT(31),
     [FLOL]          = BIT(0),
     [RXDCTL0]       = BIT(25) | BIT(16),
-    [RXDCTL1]       = BIT(16),
-    [RXDCTL2]       = BIT(16),
-    [RXDCTL3]       = BIT(16),
-    [RXDCTL4]       = BIT(16),
-    [RXDCTL5]       = BIT(16),
-    [RXDCTL6]       = BIT(16),
-    [RXDCTL7]       = BIT(16),
-    [RXDCTL8]       = BIT(16),
-    [RXDCTL9]       = BIT(16),
-    [RXDCTL10]      = BIT(16),
-    [RXDCTL11]      = BIT(16),
-    [RXDCTL12]      = BIT(16),
-    [RXDCTL13]      = BIT(16),
-    [RXDCTL14]      = BIT(16),
-    [RXDCTL15]      = BIT(16),
+    [RXDCTL1]       = BIT(25) | BIT(16),
+    [RXDCTL2]       = BIT(25) | BIT(16),
+    [RXDCTL3]       = BIT(25) | BIT(16),
+    [RXDCTL4]       = BIT(25) | BIT(16),
+    [RXDCTL5]       = BIT(25) | BIT(16),
+    [RXDCTL6]       = BIT(25) | BIT(16),
+    [RXDCTL7]       = BIT(25) | BIT(16),
+    [RXDCTL8]       = BIT(25) | BIT(16),
+    [RXDCTL9]       = BIT(25) | BIT(16),
+    [RXDCTL10]      = BIT(25) | BIT(16),
+    [RXDCTL11]      = BIT(25) | BIT(16),
+    [RXDCTL12]      = BIT(25) | BIT(16),
+    [RXDCTL13]      = BIT(25) | BIT(16),
+    [RXDCTL14]      = BIT(25) | BIT(16),
+    [RXDCTL15]      = BIT(25) | BIT(16),
     [TIPG]          = 0x8 | (0x4 << 10) | (0x6 << 20),
     [RXCFGL]        = 0x88F7,
     [RXUDP]         = 0x319,
@@ -4117,6 +4366,23 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [VFTE]          = 0xFF,
     [VMOLR ... VMOLR + 7] = 0x80002600,
     [RPLOLR]        = 0x80000000,
+    [RLPML]         = 0x2600,
+    [TXCTL0]       = BIT(13) | BIT(9),
+    [TXCTL1]       = BIT(13) | BIT(9),
+    [TXCTL2]       = BIT(13) | BIT(9),
+    [TXCTL3]       = BIT(13) | BIT(9),
+    [TXCTL4]       = BIT(13) | BIT(9),
+    [TXCTL5]       = BIT(13) | BIT(9),
+    [TXCTL6]       = BIT(13) | BIT(9),
+    [TXCTL7]       = BIT(13) | BIT(9),
+    [TXCTL8]       = BIT(13) | BIT(9),
+    [TXCTL9]       = BIT(13) | BIT(9),
+    [TXCTL10]      = BIT(13) | BIT(9),
+    [TXCTL11]      = BIT(13) | BIT(9),
+    [TXCTL12]      = BIT(13) | BIT(9),
+    [TXCTL13]      = BIT(13) | BIT(9),
+    [TXCTL14]      = BIT(13) | BIT(9),
+    [TXCTL15]      = BIT(13) | BIT(9),
 };
 
 void igb_core_reset(E1000ECore *core)

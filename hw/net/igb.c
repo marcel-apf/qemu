@@ -108,13 +108,13 @@ static void igb_write_config(PCIDevice *d, uint32_t address,
 
 uint64_t igb_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
-    IgbState *s = opaque;
+    IgbState *s = IGB(opaque);
     return igb_core_read(&s->core, addr, size);
 }
 
 void igb_mmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
-    IgbState *s = opaque;
+    IgbState *s = IGB(opaque);
     igb_core_write(&s->core, addr, val, size);
 }
 
@@ -391,10 +391,12 @@ static void pci_igb_realize(PCIDevice *d, Error **errp)
                        IGB_82576_VF_DEV_ID, IGB_TOTAL_VFS, IGB_TOTAL_VFS,
                        IGB_VF_OFFSET, IGB_VF_STRIDE);
 
-    pcie_sriov_pf_init_vf_bar(d, 0, PCI_BASE_ADDRESS_MEM_TYPE_64 | PCI_BASE_ADDRESS_MEM_PREFETCH,
-                              0x8000);
-    pcie_sriov_pf_init_vf_bar(d, 3, PCI_BASE_ADDRESS_MEM_TYPE_64 | PCI_BASE_ADDRESS_MEM_PREFETCH,
-                              0x8000);
+    pcie_sriov_pf_init_vf_bar(d, 0,
+        PCI_BASE_ADDRESS_MEM_TYPE_64 | PCI_BASE_ADDRESS_MEM_PREFETCH,
+        16 * 1024);
+    pcie_sriov_pf_init_vf_bar(d, 3,
+        PCI_BASE_ADDRESS_MEM_TYPE_64 | PCI_BASE_ADDRESS_MEM_PREFETCH,
+        16 * 1024);
 
     /* TBD: simple network stack side setup - rudely copied from e1000e.c
      */
