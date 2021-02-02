@@ -143,11 +143,9 @@
 #define E1000_IVAR_MISC 0x01740  /* Interrupt Vector Allocation Register (last) - RW */
 #define E1000_EITR     0x01680  /* Extended Interrupt Throttling Rate - RW */
 #define E1000_RCTL     0x00100  /* RX Control - RW */
+#define E1000_RDTR     0x02820  /* RX Delay Timer - RW */
+#define E1000_RDTR_A   0x00108  /* Alias to RDTR */
 #define E1000_RDTR1    0x02820  /* RX Delay Timer (1) - RW */
-#define E1000_RDBAH1   0x02904  /* RX Descriptor Base Address High (1) - RW */
-#define E1000_RDLEN1   0x02908  /* RX Descriptor Length (1) - RW */
-#define E1000_RDH1     0x02910  /* RX Descriptor Head (1) - RW */
-#define E1000_RDT1     0x02918  /* RX Descriptor Tail (1) - RW */
 #define E1000_FCTTV    0x00170  /* Flow Control Transmit Timer Value - RW */
 #define E1000_FCRTV    0x05F40  /* Flow Control Refresh Timer Value - RW */
 #define E1000_TXCW     0x00178  /* TX Configuration Word - RW */
@@ -208,6 +206,7 @@
 #define E1000_VMOLR     0x5AD0  /* VM Offload; RW */
 #define E1000_RPLOLR    0x5AF0  /* Replication Offload; RW */
 #define E1000_VLVF      0x5D00  /* VLAN VM Filter; RW */
+#define E1000_UTA       0xA000
 
 /* IGB Statistics Registers */
 #define E1000_VFGPRC    0x00F10 /* Good Packets Received Count */
@@ -219,210 +218,6 @@
 #define E1000_VFGPTLBC  0x00F44 /* Good TX packets loopback Count */
 #define E1000_VFGORLBC  0x00F48 /* Good RX Octets loopback Count */
 #define E1000_VFGOTLBC  0x00F50 /* Good TX Octets loopback Count */
-
-//#define E1000_RDBAH0    0x2804  /* RX Descriptor Base High - RW */
-//#define E1000_RDBAH1    0x2904
-#define E1000_RDBAH2    0x2a04
-#define E1000_RDBAH3    0x2b04
-#define E1000_RDBAH4    0xc104
-#define E1000_RDBAH5    0xc144
-#define E1000_RDBAH6    0xc184
-#define E1000_RDBAH7    0xc1c4
-#define E1000_RDBAH8    0xc204
-#define E1000_RDBAH9    0xc244
-#define E1000_RDBAH10   0xc284
-#define E1000_RDBAH11   0xc2c4
-#define E1000_RDBAH12   0xc304
-#define E1000_RDBAH13   0xc344
-#define E1000_RDBAH14   0xc384
-#define E1000_RDBAH15   0xc3c4
-
-//#define E1000_RDLEN0    0x2808  /* RX Descriptor Ring Length - RW */
-//#define E1000_RDLEN1    0x2908
-#define E1000_RDLEN2    0x2a08
-#define E1000_RDLEN3    0x2b08
-#define E1000_RDLEN4    0xc108
-#define E1000_RDLEN5    0xc148
-#define E1000_RDLEN6    0xc188
-#define E1000_RDLEN7    0xc1c8
-#define E1000_RDLEN8    0xc208
-#define E1000_RDLEN9    0xc248
-#define E1000_RDLEN10   0xc288
-#define E1000_RDLEN11   0xc2c8
-#define E1000_RDLEN12   0xc308
-#define E1000_RDLEN13   0xc348
-#define E1000_RDLEN14   0xc388
-#define E1000_RDLEN15   0xc3c8
-
-#define E1000_SRRCTL0   0x280c  /* Split and Replication Receive Control - RW */
-#define E1000_SRRCTL1   0x290c
-#define E1000_SRRCTL2   0x2a0c
-#define E1000_SRRCTL3   0x2b0c
-#define E1000_SRRCTL4   0xc10c
-#define E1000_SRRCTL5   0xc14c
-#define E1000_SRRCTL6   0xc18c
-#define E1000_SRRCTL7   0xc1cc
-#define E1000_SRRCTL8   0xc20c
-#define E1000_SRRCTL9   0xc24c
-#define E1000_SRRCTL10  0xc28c
-#define E1000_SRRCTL11  0xc2cc
-#define E1000_SRRCTL12  0xc30c
-#define E1000_SRRCTL13  0xc34c
-#define E1000_SRRCTL14  0xc38c
-#define E1000_SRRCTL15  0xc3cc
-
-//#define E1000_RDH0  0x2810  /* RX Descriptor Head - RW */
-//#define E1000_RDH1  0x2910
-#define E1000_RDH2  0x2a10
-#define E1000_RDH3  0x2b10
-#define E1000_RDH4  0xc110
-#define E1000_RDH5  0xc150
-#define E1000_RDH6  0xc190
-#define E1000_RDH7  0xc1d0
-#define E1000_RDH8  0xc210
-#define E1000_RDH9  0xc250
-#define E1000_RDH10 0xc290
-#define E1000_RDH11 0xc2d0
-#define E1000_RDH12 0xc310
-#define E1000_RDH13 0xc350
-#define E1000_RDH14 0xc390
-#define E1000_RDH15 0xc3d0
-
-//#define E1000_RDT0  0x2818  /* RX Descriptor Tail - RW */
-//#define E1000_RDT1  0x2918
-#define E1000_RDT2  0x2a18
-#define E1000_RDT3  0x2b18
-#define E1000_RDT4  0xc118
-#define E1000_RDT5  0xc158
-#define E1000_RDT6  0xc198
-#define E1000_RDT7  0xc1d8
-#define E1000_RDT8  0xc218
-#define E1000_RDT9  0xc258
-#define E1000_RDT10 0xc298
-#define E1000_RDT11 0xc2d8
-#define E1000_RDT12 0xc318
-#define E1000_RDT13 0xc358
-#define E1000_RDT14 0xc398
-#define E1000_RDT15 0xc3d8
-
-#define E1000_RXDCTL0   0x2828  /* Receive Descriptor Control */
-//#define E1000_RXDCTL1   0x2928
-#define E1000_RXDCTL2   0x2a28
-#define E1000_RXDCTL3   0x2b28
-#define E1000_RXDCTL4   0xc128
-#define E1000_RXDCTL5   0xc168
-#define E1000_RXDCTL6   0xc1a8
-#define E1000_RXDCTL7   0xc1e8
-#define E1000_RXDCTL8   0xc228
-#define E1000_RXDCTL9   0xc268
-#define E1000_RXDCTL10  0xc2a8
-#define E1000_RXDCTL11  0xc2e8
-#define E1000_RXDCTL12  0xc328
-#define E1000_RXDCTL13  0xc368
-#define E1000_RXDCTL14  0xc3a8
-#define E1000_RXDCTL15  0xc3e8
-
-#define E1000_TDBAL0    0x3800  /* Transmit Descriptor Base Address Low - RW */
-//#define E1000_TDBAL1    0x3900
-#define E1000_TDBAL2    0x3a00
-#define E1000_TDBAL3    0x3b00
-#define E1000_TDBAL4    0xe100
-#define E1000_TDBAL5    0xe140
-#define E1000_TDBAL6    0xe180
-#define E1000_TDBAL7    0xe1c0
-#define E1000_TDBAL8    0xe200
-#define E1000_TDBAL9    0xe240
-#define E1000_TDBAL10   0xe280
-#define E1000_TDBAL11   0xe2c0
-#define E1000_TDBAL12   0xe300
-#define E1000_TDBAL13   0xe340
-#define E1000_TDBAL14   0xe380
-#define E1000_TDBAL15   0xe3c0
-
-#define E1000_TDBAH0    0x3804  /* Transmit Descriptor Base Address High - RW */
-//#define E1000_TDBAH1    0x3904
-#define E1000_TDBAH2    0x3a04
-#define E1000_TDBAH3    0x3b04
-#define E1000_TDBAH4    0xe104
-#define E1000_TDBAH5    0xe144
-#define E1000_TDBAH6    0xe184
-#define E1000_TDBAH7    0xe1c4
-#define E1000_TDBAH8    0xe204
-#define E1000_TDBAH9    0xe244
-#define E1000_TDBAH10   0xe284
-#define E1000_TDBAH11   0xe2c4
-#define E1000_TDBAH12   0xe304
-#define E1000_TDBAH13   0xe344
-#define E1000_TDBAH14   0xe384
-#define E1000_TDBAH15   0xe3c4
-
-#define E1000_TDH0  0x3810  /* Transmit Descriptor Head - RO */
-//#define E1000_TDH1  0x3910
-#define E1000_TDH2  0x3a10
-#define E1000_TDH3  0x3b10
-#define E1000_TDH4  0xe110
-#define E1000_TDH5  0xe150
-#define E1000_TDH6  0xe190
-#define E1000_TDH7  0xe1d0
-#define E1000_TDH8  0xe210
-#define E1000_TDH9  0xe250
-#define E1000_TDH10 0xe290
-#define E1000_TDH11 0xe2d0
-#define E1000_TDH12 0xe310
-#define E1000_TDH13 0xe350
-#define E1000_TDH14 0xe390
-#define E1000_TDH15 0xe3d0
-
-#define E1000_TDT0  0x3818  /* Transmit Descriptor Tail - RW */
-//#define E1000_TDT1  0x3918
-#define E1000_TDT2  0x3a18
-#define E1000_TDT3  0x3b18
-#define E1000_TDT4  0xe118
-#define E1000_TDT5  0xe158
-#define E1000_TDT6  0xe198
-#define E1000_TDT7  0xe1d8
-#define E1000_TDT8  0xe218
-#define E1000_TDT9  0xe258
-#define E1000_TDT10 0xe298
-#define E1000_TDT11 0xe2d8
-#define E1000_TDT12 0xe318
-#define E1000_TDT13 0xe358
-#define E1000_TDT14 0xe398
-#define E1000_TDT15 0xe3d8
-
-#define E1000_TDLEN0    0x3808  /* Transmit Descriptor Ring Length - RW */
-//#define E1000_TDLEN1    0x3908
-#define E1000_TDLEN2    0x3a08
-#define E1000_TDLEN3    0x3b08
-#define E1000_TDLEN4    0xe108
-#define E1000_TDLEN5    0xe148
-#define E1000_TDLEN6    0xe188
-#define E1000_TDLEN7    0xe1c8
-#define E1000_TDLEN8    0xe208
-#define E1000_TDLEN9    0xe248
-#define E1000_TDLEN10   0xe288
-#define E1000_TDLEN11   0xe2c8
-#define E1000_TDLEN12   0xe308
-#define E1000_TDLEN13   0xe348
-#define E1000_TDLEN14   0xe388
-#define E1000_TDLEN15   0xe3c8
-
-#define E1000_TXDCTL0   0x3828  /* Transmit Descriptor Control - RW */
-//#define E1000_TXDCTL1   0x3928
-#define E1000_TXDCTL2   0x3a28
-#define E1000_TXDCTL3   0x3b28
-#define E1000_TXDCTL4   0xe128
-#define E1000_TXDCTL5   0xe168
-#define E1000_TXDCTL6   0xe1a8
-#define E1000_TXDCTL7   0xe1e8
-#define E1000_TXDCTL8   0xe228
-#define E1000_TXDCTL9   0xe268
-#define E1000_TXDCTL10  0xe2a8
-#define E1000_TXDCTL11  0xe2e8
-#define E1000_TXDCTL12  0xe328
-#define E1000_TXDCTL13  0xe368
-#define E1000_TXDCTL14  0xe3a8
-#define E1000_TXDCTL15  0xe3e8
 
 #define E1000_VTCTRL0   0x10000 /* Mirror VF Control (only RST bit); RW */
 #define E1000_VTCTRL1   0x10100
@@ -580,23 +375,7 @@
 #define E1000_FCRTH    0x02168  /* Flow Control Receive Threshold High - RW */
 #define E1000_FCRTH_A  0x00160  /* Alias to FCRTH */
 #define E1000_PSRCTL   0x02170  /* Packet Split Receive Control - RW */
-#define E1000_RDBAH    0x02804  /* RX Descriptor Base Address High - RW */
-#define E1000_RDLEN    0x02808  /* RX Descriptor Length - RW */
-#define E1000_RDH      0x02810  /* RX Descriptor Head - RW */
-#define E1000_RDT      0x02818  /* RX Descriptor Tail - RW */
-#define E1000_RDTR     0x02820  /* RX Delay Timer - RW */
-#define E1000_RDTR_A   0x00108  /* Alias to RDTR */
-#define E1000_RDBAH0   E1000_RDBAH /* RX Desc Base Address High (0) - RW */
-#define E1000_RDBAH0_A 0x00114     /* Alias to RDBAH0 */
-#define E1000_RDLEN0   E1000_RDLEN /* RX Desc Length (0) - RW */
-#define E1000_RDLEN0_A 0x00118     /* Alias to RDLEN0 */
-#define E1000_RDH0     E1000_RDH   /* RX Desc Head (0) - RW */
-#define E1000_RDH0_A   0x00120     /* Alias to RDH0 */
-#define E1000_RDT0     E1000_RDT   /* RX Desc Tail (0) - RW */
-#define E1000_RDT0_A   0x00128     /* Alias to RDT0 */
 #define E1000_RDTR0    E1000_RDTR  /* RX Delay Timer (0) - RW */
-#define E1000_RXDCTL   0x02828  /* RX Descriptor Control queue 0 - RW */
-#define E1000_RXDCTL1  0x02928  /* RX Descriptor Control queue 1 - RW */
 #define E1000_RADV     0x0282C  /* RX Interrupt Absolute Delay Timer - RW */
 #define E1000_RAID     0x02C08  /* Receive Ack Interrupt Delay - RW */
 #define E1000_TXDMAC   0x03000  /* TX DMA Control - RW */
@@ -616,28 +395,12 @@
 #define E1000_TDFHS    0x03420  /* TX Data FIFO Head Saved - RW */
 #define E1000_TDFTS    0x03428  /* TX Data FIFO Tail Saved - RW */
 #define E1000_TDFPC    0x03430  /* TX Data FIFO Packet Count - RW */
-#define E1000_TDBAL    0x03800  /* TX Descriptor Base Address Low - RW */
-#define E1000_TDBAL_A  0x00420  /* Alias to TDBAL */
-#define E1000_TDBAH    0x03804  /* TX Descriptor Base Address High - RW */
-#define E1000_TDBAH_A  0x00424  /* Alias to TDBAH */
-#define E1000_TDLEN    0x03808  /* TX Descriptor Length - RW */
-#define E1000_TDLEN_A  0x00428  /* Alias to TDLEN */
-#define E1000_TDH      0x03810  /* TX Descriptor Head - RW */
-#define E1000_TDH_A    0x00430  /* Alias to TDH */
-#define E1000_TDT      0x03818  /* TX Descripotr Tail - RW */
-#define E1000_TDT_A    0x00438  /* Alias to TDT */
 #define E1000_TIDV     0x03820  /* TX Interrupt Delay Value - RW */
 #define E1000_TIDV_A   0x00440  /* Alias to TIDV */
 #define E1000_TXDCTL   0x03828  /* TX Descriptor Control - RW */
 #define E1000_TADV     0x0382C  /* TX Interrupt Absolute Delay Val - RW */
 #define E1000_TSPMT    0x03830  /* TCP Segmentation PAD & Min Threshold - RW */
 #define E1000_TARC0    0x03840  /* TX Arbitration Count (0) */
-#define E1000_TDBAL1   0x03900  /* TX Desc Base Address Low (1) - RW */
-#define E1000_TDBAH1   0x03904  /* TX Desc Base Address High (1) - RW */
-#define E1000_TDLEN1   0x03908  /* TX Desc Length (1) - RW */
-#define E1000_TDH1     0x03910  /* TX Desc Head (1) - RW */
-#define E1000_TDT1     0x03918  /* TX Desc Tail (1) - RW */
-#define E1000_TXDCTL1  0x03928  /* TX Descriptor Control (1) - RW */
 #define E1000_TARC1    0x03940  /* TX Arbitration Count (1) */
 #define E1000_CRCERRS  0x04000  /* CRC Error Count - R/clr */
 #define E1000_ALGNERRC 0x04004  /* Alignment Error Count - R/clr */
@@ -716,8 +479,6 @@
 #define E1000_MAVTV2   0x05018  /* Management VLAN TAG Value 2 */
 #define E1000_MAVTV3   0x0501c  /* Management VLAN TAG Value 3 */
 #define E1000_MTA      0x05200  /* Multicast Table Array - RW Array */
-#define E1000_RA       0x05400  /* Receive Address - RW Array */
-#define E1000_RA_A     0x00040  /* Alias to RA */
 #define E1000_VFTA     0x05600  /* VLAN Filter Table Array - RW Array */
 #define E1000_VFTA_A   0x00600  /* Alias to VFTA */
 #define E1000_WUC      0x05800  /* Wakeup Control - RW */
@@ -792,7 +553,7 @@
 
 #define E1000_RETA_IDX(hash)        ((hash) & (BIT(7) - 1))
 #define E1000_RETA_VAL(reta, hash)  (((uint8_t *)(reta))[E1000_RETA_IDX(hash)])
-#define E1000_RSS_QUEUE(reta, hash) ((E1000_RETA_VAL(reta, hash) & BIT(7)) >> 7)
+#define E1000_RSS_QUEUE(reta, hash) (E1000_RETA_VAL(reta, hash) & 0x0F)
 
 #define E1000_MRQC_EN_TCPIPV4(mrqc) ((mrqc) & BIT(16))
 #define E1000_MRQC_EN_IPV4(mrqc)    ((mrqc) & BIT(17))
