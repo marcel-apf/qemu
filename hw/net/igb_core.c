@@ -743,17 +743,15 @@ e1000e_rx_wb_interrupt_cause(E1000ECore *core, int queue_idx,
 
 static uint32_t
 e1000e_txdesc_writeback(E1000ECore *core, dma_addr_t base,
-                        struct e1000_tx_desc *dp, bool *ide, int queue_idx)
+                        struct e1000_tx_desc *dp, int queue_idx)
 {
-    uint32_t txd_upper, txd_lower = le32_to_cpu(dp->lower.data);
+    uint32_t txd_upper;
 
     /* TODO: Check CMD because IVAR doesn't include this flag.
     if (!(txd_lower & E1000_TXD_CMD_RS) &&
         !(core->mac[IVAR] & E1000_IVAR_TX_INT_EVERY_WB)) {
         return 0;
     }*/
-
-    *ide = (txd_lower & E1000_TXD_CMD_IDE) ? true : false;
 
     txd_upper = le32_to_cpu(dp->upper.data) | E1000_TXD_STAT_DD;
 
@@ -909,7 +907,6 @@ static void igb_start_xmit(E1000ECore *core, const E1000E_TxRing *txr)
 {
     dma_addr_t base;
     struct e1000_tx_desc desc;
-    bool ide = false;
     const E1000E_RingInfo *txi = txr->i;
     uint32_t cause = 0;
 
@@ -929,12 +926,12 @@ static void igb_start_xmit(E1000ECore *core, const E1000E_TxRing *txr)
                               desc.lower.data, desc.upper.data);
 
         e1000e_process_tx_desc(core, txr->tx, &desc, txi->idx);
-        cause |= e1000e_txdesc_writeback(core, base, &desc, &ide, txi->idx);
+        cause |= e1000e_txdesc_writeback(core, base, &desc, txi->idx);
 
         e1000e_ring_advance(core, txi, 1);
     }
 
-    if (!ide || !e1000e_intrmgr_delay_tx_causes(core, &cause)) {
+    if (!e1000e_intrmgr_delay_tx_causes(core, &cause)) {
         core->mac[EICR] |= cause;
         igb_update_interrupt_state(core);
     }
