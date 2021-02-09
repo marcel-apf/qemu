@@ -82,12 +82,16 @@ struct E1000Core {
     } vf_select_table[8];
 
     struct e1000e_tx {
-        e1000x_txd_props props;
+        struct NetTxPkt *tx_pkt;
+
+        uint16_t vlan;  /* VLAN Tag */
+        uint16_t mss;   /* Maximum Segment Size */
+        bool tse;       /* TCP/UDP Segmentation Enable */
+        bool ixsm;      /* Insert IP Checksum */
+        bool txsm;      /* Insert TCP/UDP Checksum */
 
         bool skip_cp;
-        unsigned char sum_needed;
-        bool cptse;
-        struct NetTxPkt *tx_pkt;
+
     } tx[E1000E_NUM_QUEUES];
 
     struct NetRxPkt *rx_pkt;
