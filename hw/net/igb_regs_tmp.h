@@ -1120,32 +1120,41 @@
 /* MSI-X PBA Clear register */
 #define E1000_PBACLR_VALID_MASK       (BIT(5) - 1)
 
-/* Transmit Descriptor */
-struct e1000_tx_desc {
-    uint64_t buffer_addr;       /* Address of the descriptor's data buffer */
-    union {
-        uint32_t data;
-        struct {
-            uint16_t length;    /* Data buffer length */
-            uint8_t cso;        /* Checksum offset */
-            uint8_t cmd;        /* Descriptor control */
-        } flags;
-    } lower;
-    union {
-        uint32_t data;
-        struct {
-            uint8_t status;     /* Descriptor status */
-            uint8_t css;        /* Checksum start */
-            uint16_t special;
-        } fields;
-    } upper;
+/* Context Descriptor */
+struct e1000_adv_tx_context_desc {
+    __le32 vlan_macip_lens;
+    __le32 seqnum_seed;
+    __le32 type_tucmd_mlhl;
+    __le32 mss_l4len_idx;
 };
+
+/* Advanced Transmit Descriptor */
+union e1000_adv_tx_desc {
+    struct {
+        __le64 buffer_addr;     /* Address of descriptor's data buffer */
+        __le32 cmd_type_len;
+        __le32 olinfo_status;
+    } read;
+    struct {
+        __le64 rsvd;            /* Reserved */
+        __le32 nxtseq_seed;
+        __le32 status;
+    } wb;
+};
+
+#define E1000_ADVTXD_DTYP_CTXT  0x00200000 /* Advanced Context Descriptor */
+#define E1000_ADVTXD_DTYP_DATA  0x00300000 /* Advanced Data Descriptor */
+#define E1000_ADVTXD_DCMD_DEXT  0x20000000 /* Descriptor Extension (1=Adv) */
+#define E1000_ADVTXD_DCMD_TSE   0x80000000 /* TCP/UDP Segmentation Enable */
+
+#define E1000_ADVTXD_POTS_IXSM  0x00000100 /* Insert TCP/UDP Checksum */
+#define E1000_ADVTXD_POTS_TXSM  0x00000200 /* Insert TCP/UDP Checksum */
 
 /* Transmit Descriptor bit definitions */
 #define E1000_TXD_DTYP_D     0x00100000 /* Data Descriptor */
 #define E1000_TXD_DTYP_C     0x00000000 /* Context Descriptor */
-#define E1000_TXD_POPTS_IXSM 0x01       /* Insert IP checksum */
-#define E1000_TXD_POPTS_TXSM 0x02       /* Insert TCP/UDP checksum */
+#define E1000_TXD_POPTS_IXSM 0x00000001 /* Insert IP checksum */
+#define E1000_TXD_POPTS_TXSM 0x00000002 /* Insert TCP/UDP checksum */
 #define E1000_TXD_CMD_EOP    0x01000000 /* End of Packet */
 #define E1000_TXD_CMD_IFCS   0x02000000 /* Insert FCS (Ethernet CRC) */
 #define E1000_TXD_CMD_IC     0x04000000 /* Insert Checksum */

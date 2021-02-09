@@ -61,22 +61,6 @@ static inline void
 e1000e_set_interrupt_cause(E1000ECore *core, uint32_t val);
 
 static inline void
-e1000e_process_ts_option(E1000ECore *core, struct e1000_tx_desc *dp)
-{
-    if (le32_to_cpu(dp->upper.data) & E1000_TXD_EXTCMD_TSTAMP) {
-        trace_e1000e_wrn_no_ts_support();
-    }
-}
-
-static inline void
-e1000e_process_snap_option(E1000ECore *core, uint32_t cmd_and_length)
-{
-    if (cmd_and_length & E1000_TXD_CMD_SNAP) {
-        trace_e1000e_wrn_no_snap_support();
-    }
-}
-
-static inline void
 e1000e_raise_legacy_irq(E1000ECore *core)
 {
     trace_e1000e_irq_legacy_notify(true);
@@ -570,18 +554,18 @@ e1000e_rss_parse_packet(E1000ECore *core,
 static void
 e1000e_setup_tx_offloads(E1000ECore *core, struct e1000e_tx *tx)
 {
-    if (tx->props.tse && tx->cptse) {
-        net_tx_pkt_build_vheader(tx->tx_pkt, true, true, tx->props.mss);
+    if (tx->tse) {
+        net_tx_pkt_build_vheader(tx->tx_pkt, true, true, tx->mss);
         net_tx_pkt_update_ip_checksums(tx->tx_pkt);
         e1000x_inc_reg_if_not_full(core->mac, TSCTC);
         return;
     }
 
-    if (tx->sum_needed & E1000_TXD_POPTS_TXSM) {
+    if (tx->txsm) {
         net_tx_pkt_build_vheader(tx->tx_pkt, false, true, 0);
     }
 
-    if (tx->sum_needed & E1000_TXD_POPTS_IXSM) {
+    if (tx->ixsm) {
         net_tx_pkt_update_ip_hdr_checksum(tx->tx_pkt);
     }
 }
@@ -634,48 +618,56 @@ e1000e_on_tx_done_update_stats(E1000ECore *core, struct NetTxPkt *tx_pkt)
     core->mac[GOTCH] = core->mac[TOTH];
 }
 
-static void
-e1000e_process_tx_desc(E1000ECore *core,
-                       struct e1000e_tx *tx,
-                       struct e1000_tx_desc *dp,
-                       int queue_index)
+static void igb_process_tx_desc(E1000ECore *core, struct e1000e_tx *tx,
+    union e1000_adv_tx_desc *tx_desc, int queue_index)
 {
-    uint32_t txd_lower = le32_to_cpu(dp->lower.data);
-    uint32_t dtype = txd_lower & (E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_D);
-    unsigned int split_size = txd_lower & 0xffff;
-    uint64_t addr;
-    struct e1000_context_desc *xp = (struct e1000_context_desc *)dp;
-    bool eop = txd_lower & E1000_TXD_CMD_EOP;
+    struct e1000_adv_tx_context_desc *tx_ctx_desc;
+    uint32_t cmd_type_len;
+    uint32_t olinfo_status;
+    uint64_t buffer_addr;
+    uint16_t length;
 
-    if (dtype == E1000_TXD_CMD_DEXT) { /* context descriptor */
-        e1000x_read_tx_ctx_descr(xp, &tx->props);
-        e1000e_process_snap_option(core, le32_to_cpu(xp->cmd_and_length));
-        return;
-    } else if (dtype == (E1000_TXD_CMD_DEXT | E1000_TXD_DTYP_D)) {
-        /* data descriptor */
-        tx->sum_needed = le32_to_cpu(dp->upper.data) >> 8;
-        tx->cptse = (txd_lower & E1000_TXD_CMD_TSE) ? 1 : 0;
-        e1000e_process_ts_option(core, dp);
+    cmd_type_len = le32_to_cpu(tx_desc->read.cmd_type_len);
+
+    if (cmd_type_len & E1000_ADVTXD_DCMD_DEXT) {
+        if ((cmd_type_len & E1000_ADVTXD_DTYP_DATA) ==
+            E1000_ADVTXD_DTYP_DATA) {
+            /* Advanced Transmit Data Descriptor */
+            olinfo_status = le32_to_cpu(tx_desc->read.olinfo_status);
+            tx->tse = !!(cmd_type_len & E1000_ADVTXD_DCMD_TSE);
+            tx->ixsm = !!(olinfo_status & E1000_ADVTXD_POTS_IXSM);
+            tx->txsm = !!(olinfo_status & E1000_ADVTXD_POTS_TXSM);
+        } else if ((cmd_type_len & E1000_ADVTXD_DTYP_CTXT) ==
+                   E1000_ADVTXD_DTYP_CTXT) {
+            /* Advanced Transmit Context Descriptor */
+            tx_ctx_desc = (struct e1000_adv_tx_context_desc *)tx_desc;
+            tx->vlan = le32_to_cpu(tx_ctx_desc->vlan_macip_lens) >> 16;
+            tx->mss = le32_to_cpu(tx_ctx_desc->mss_l4len_idx) >> 16;
+            return;
+        } else {
+            /* Unknown Descriptor Type */
+            return;
+        }
     } else {
-        /* legacy descriptor */
-        e1000e_process_ts_option(core, dp);
-        tx->cptse = 0;
+        /* Legacy Descriptor */
+
+        // TODO: Implement a support for legacy descriptors (7.2.2.1).
     }
 
-    addr = le64_to_cpu(dp->buffer_addr);
+    buffer_addr = le64_to_cpu(tx_desc->read.buffer_addr);
+    length = cmd_type_len & 0xFFFF;
 
     if (!tx->skip_cp) {
-        if (!net_tx_pkt_add_raw_fragment(tx->tx_pkt, addr, split_size)) {
+        if (!net_tx_pkt_add_raw_fragment(tx->tx_pkt, buffer_addr, length)) {
             tx->skip_cp = true;
         }
     }
 
-    if (eop) {
+    if (cmd_type_len & E1000_TXD_CMD_EOP) {
         if (!tx->skip_cp && net_tx_pkt_parse(tx->tx_pkt)) {
-            if (e1000x_vlan_enabled(core->mac) &&
-                e1000x_is_vlan_txd(txd_lower)) {
-                net_tx_pkt_setup_vlan_header_ex(tx->tx_pkt,
-                    le16_to_cpu(dp->upper.fields.special), core->vet);
+            if (cmd_type_len & E1000_TXD_CMD_VLE) {
+                net_tx_pkt_setup_vlan_header_ex(tx->tx_pkt, tx->vlan,
+                    core->vet);
             }
             if (e1000e_tx_pkt_send(core, tx, queue_index)) {
                 e1000e_on_tx_done_update_stats(core, tx->tx_pkt);
@@ -684,9 +676,6 @@ e1000e_process_tx_desc(E1000ECore *core,
 
         tx->skip_cp = false;
         net_tx_pkt_reset(tx->tx_pkt);
-
-        tx->sum_needed = 0;
-        tx->cptse = 0;
     }
 }
 
@@ -741,23 +730,23 @@ e1000e_rx_wb_interrupt_cause(E1000ECore *core, int queue_idx,
 }
 #endif
 
-static uint32_t
-e1000e_txdesc_writeback(E1000ECore *core, dma_addr_t base,
-                        struct e1000_tx_desc *dp, int queue_idx)
+static uint32_t igb_txdesc_writeback(E1000ECore *core, dma_addr_t base,
+    union e1000_adv_tx_desc *tx_desc, int queue_idx)
 {
-    uint32_t txd_upper;
+    uint32_t cmd_type_len;
+    uint32_t status;
 
-    /* TODO: Check CMD because IVAR doesn't include this flag.
-    if (!(txd_lower & E1000_TXD_CMD_RS) &&
-        !(core->mac[IVAR] & E1000_IVAR_TX_INT_EVERY_WB)) {
+    cmd_type_len = le32_to_cpu(tx_desc->read.cmd_type_len);
+    if (!(cmd_type_len & E1000_TXD_CMD_RS)) {
         return 0;
-    }*/
+    }
 
-    txd_upper = le32_to_cpu(dp->upper.data) | E1000_TXD_STAT_DD;
+    status = le32_to_cpu(tx_desc->wb.status) | E1000_TXD_STAT_DD;
+    tx_desc->wb.status = cpu_to_le32(status);
 
-    dp->upper.data = cpu_to_le32(txd_upper);
-    pci_dma_write(core->owner, base + ((char *)&dp->upper - (char *)dp),
-                  &dp->upper, sizeof(dp->upper));
+    pci_dma_write(core->owner, base + offsetof(union e1000_adv_tx_desc, wb),
+        &tx_desc->wb, sizeof(tx_desc->wb));
+
     return igb_tx_wb_interrupt_cause(core, queue_idx);
 }
 
@@ -905,28 +894,23 @@ static inline void igb_rx_ring_init(E1000ECore *core, E1000E_RxRing *rxr,
 
 static void igb_start_xmit(E1000ECore *core, const E1000E_TxRing *txr)
 {
-    dma_addr_t base;
-    struct e1000_tx_desc desc;
     const E1000E_RingInfo *txi = txr->i;
+    union e1000_adv_tx_desc tx_desc;
+    dma_addr_t base;
     uint32_t cause = 0;
 
+    // TODO: check if the queue itself is enabled too.
     if (!(core->mac[TCTL] & E1000_TCTL_EN)) {
         trace_e1000e_tx_disabled();
         return;
     }
 
-    // 7.2.2.6 Transmit Descriptor Write-BackTXDCTL[n].WTHRESH = 0b
-
     while (!e1000e_ring_empty(core, txi)) {
         base = e1000e_ring_head_descr(core, txi);
+        pci_dma_read(core->owner, base, &tx_desc, sizeof(tx_desc));
 
-        pci_dma_read(core->owner, base, &desc, sizeof(desc));
-
-        trace_e1000e_tx_descr((void *)(intptr_t)desc.buffer_addr,
-                              desc.lower.data, desc.upper.data);
-
-        e1000e_process_tx_desc(core, txr->tx, &desc, txi->idx);
-        cause |= e1000e_txdesc_writeback(core, base, &desc, txi->idx);
+        igb_process_tx_desc(core, txr->tx, &tx_desc, txi->idx);
+        cause |= igb_txdesc_writeback(core, base, &tx_desc, txi->idx);
 
         e1000e_ring_advance(core, txi, 1);
     }
@@ -1604,6 +1588,7 @@ e1000e_write_packet_to_guest(E1000ECore *core, struct NetRxPkt *pkt,
 
         e1000e_write_rx_descr(core, desc, is_last ? core->rx_pkt : NULL,
                            rss_info, do_ps ? ps_hdr_len : 0, &bastate.written);
+
         pci_dma_write(d, base, &desc, core->rx_desc_len);
 
         e1000e_ring_advance(core, rxi,
@@ -4384,6 +4369,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
 
 void igb_core_reset(E1000ECore *core)
 {
+    struct e1000e_tx *tx;
     int i;
 
     timer_del(core->autoneg_timer);
@@ -4404,9 +4390,14 @@ void igb_core_reset(E1000ECore *core)
     e1000x_reset_mac_addr(core->owner_nic, core->mac, core->permanent_mac);
 
     for (i = 0; i < ARRAY_SIZE(core->tx); i++) {
-        net_tx_pkt_reset(core->tx[i].tx_pkt);
-        memset(&core->tx[i].props, 0, sizeof(core->tx[i].props));
-        core->tx[i].skip_cp = false;
+        tx = &core->tx[i];
+        net_tx_pkt_reset(tx->tx_pkt);
+        tx->vlan = 0;
+        tx->mss = 0;
+        tx->tse = false;
+        tx->ixsm = false;
+        tx->txsm = false;
+        tx->skip_cp = false;
     }
 }
 
