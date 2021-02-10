@@ -1187,6 +1187,34 @@ union e1000_adv_tx_desc {
 #define E1000_TCTL_NRTU   0x02000000    /* No Re-transmit on underrun */
 #define E1000_TCTL_MULR   0x10000000    /* Multiple request support */
 
+/* Receive Descriptor - Advanced */
+union e1000_adv_rx_desc {
+    struct {
+        __le64 pkt_addr;                /* Packet Buffer Address */
+        __le64 hdr_addr;                /* Header Buffer Address */
+    } read;
+    struct {
+        struct {
+            struct {
+                __le16 pkt_info;        /* RSS Type, Packet Type */
+                __le16 hdr_info;        /* Split Head, Buffer Length */
+            } lo_dword;
+            union {
+                __le32 rss;             /* RSS Hash */
+                struct {
+                        __le16 ip_id;   /* IP Id */
+                        __le16 csum;    /* Packet Checksum */
+                } csum_ip;
+            } hi_dword;
+        } lower;
+        struct {
+            __le32 status_error;        /* Ext Status/Error */
+            __le16 length;              /* Packet Length */
+            __le16 vlan;                /* VLAN tag */
+        } upper;
+    } wb;  /* writeback */
+};
+
 /* Legacy Receive Descriptor */
 struct e1000_rx_desc {
     uint64_t buffer_addr; /* Address of the descriptor's data buffer */

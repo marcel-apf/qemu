@@ -387,16 +387,17 @@ e1000e_rx_csum_enabled(E1000ECore *core)
     return (core->mac[RXCSUM] & E1000_RXCSUM_PCSD) ? false : true;
 }
 
-static inline bool
-e1000e_rx_use_legacy_descriptor(E1000ECore *core)
+static bool e1000e_rx_use_legacy_descriptor(E1000ECore *core)
 {
+    // TODO: If SRRCTL[n],DESCTYPE = 000b, the 82576 uses the legacy Rx
+    // descriptor.
     return false;
-    return (core->mac[RFCTL] & E1000_RFCTL_EXTEN) ? false : true;
 }
 
 static inline bool
 e1000e_rx_use_ps_descriptor(E1000ECore *core)
 {
+    return false;
     return !e1000e_rx_use_legacy_descriptor(core) &&
            (core->mac[RCTL] & E1000_RCTL_DTYP_PS);
 }
@@ -637,6 +638,8 @@ static void igb_process_tx_desc(E1000ECore *core, struct e1000e_tx *tx,
             tx->tse = !!(cmd_type_len & E1000_ADVTXD_DCMD_TSE);
             tx->ixsm = !!(olinfo_status & E1000_ADVTXD_POTS_IXSM);
             tx->txsm = !!(olinfo_status & E1000_ADVTXD_POTS_TXSM);
+            // TODO: Should always be on? It is on VF, not on PF.
+            tx->txsm = true;
         } else if ((cmd_type_len & E1000_ADVTXD_DTYP_CTXT) ==
                    E1000_ADVTXD_DTYP_CTXT) {
             /* Advanced Transmit Context Descriptor */
@@ -1066,8 +1069,8 @@ e1000e_read_lgcy_rx_descr(E1000ECore *core, uint8_t *desc, hwaddr *buff_addr)
 static inline void
 e1000e_read_ext_rx_descr(E1000ECore *core, uint8_t *desc, hwaddr *buff_addr)
 {
-    union e1000_rx_desc_extended *d = (union e1000_rx_desc_extended *) desc;
-    *buff_addr = le64_to_cpu(d->read.buffer_addr);
+    union e1000_adv_rx_desc *d = (union e1000_adv_rx_desc *) desc;
+    *buff_addr = le64_to_cpu(d->read.pkt_addr);
 }
 
 static inline void
@@ -1155,6 +1158,108 @@ e1000e_is_tcp_ack(E1000ECore *core, struct NetRxPkt *rx_pkt)
     return true;
 }
 
+static void igb_build_rx_metadata(E1000ECore *core, struct NetRxPkt *pkt,
+    bool is_eop, const E1000E_RSSInfo *rss_info,
+    uint16_t *pkt_info, uint16_t *hdr_info,
+    uint16_t *ip_id, uint16_t *csum,
+    uint32_t *status, uint16_t *vlan)
+{
+    bool isip4, isip6, istcp, isudp;
+    //uint32_t pkt_type;
+
+    *status = E1000_RXD_STAT_DD;
+
+    /* No additional metadata needed for non-EOP descriptors */
+    // TODO: EOP apply only to status so don't skip whole function.
+    if (!is_eop) {
+        goto func_exit;
+    }
+
+    *status |= E1000_RXD_STAT_EOP;
+
+    net_rx_pkt_get_protocols(pkt, &isip4, &isip6, &isudp, &istcp);
+    trace_e1000e_rx_metadata_protocols(isip4, isip6, isudp, istcp);
+
+    /*if (rss_info->enabled) {
+        *pkt_info = rss_info->type;
+    }
+
+    if (isip6 && (core->mac[RFCTL] & E1000_RFCTL_IPV6_DIS)) {
+        trace_e1000e_rx_metadata_ipv6_filtering_disabled();
+        pkt_type = E1000_RXD_PKT_MAC;
+    } else if (istcp || isudp) {
+        pkt_type = isip4 ? E1000_RXD_PKT_IP4_XDP : E1000_RXD_PKT_IP6_XDP;
+    } else if (isip4 || isip6) {
+        pkt_type = isip4 ? E1000_RXD_PKT_IP4 : E1000_RXD_PKT_IP6;
+    } else {
+        pkt_type = E1000_RXD_PKT_MAC;
+    }
+
+    trace_e1000e_rx_metadata_pkt_type(pkt_type);
+    *pkt_info |= (pkt_type << 4);*/
+
+    *pkt_info = 0;
+    *hdr_info = 0;
+
+    /* VLAN state */
+    if (net_rx_pkt_is_vlan_stripped(pkt)) {
+        *status |= E1000_RXD_STAT_VP;
+        *vlan = cpu_to_le16(net_rx_pkt_get_vlan_tag(pkt));
+        trace_e1000e_rx_metadata_vlan(*vlan);
+    }
+
+    /* Packet parsing results */
+    /*if ((core->mac[RXCSUM] & E1000_RXCSUM_PCSD) != 0) {
+        if (rss_info->enabled) {
+            *rss = cpu_to_le32(rss_info->hash);
+            *mrq = cpu_to_le32(rss_info->type | (rss_info->queue << 8));
+            trace_e1000e_rx_metadata_rss(*rss, *mrq);
+        }
+    } else*/ if (isip4) {
+            /**status |= E1000_RXD_STAT_IPIDV;*/
+            *ip_id = cpu_to_le16(net_rx_pkt_get_ip_id(pkt));
+            trace_e1000e_rx_metadata_ip_id(*ip_id);
+    }
+
+    /*if (istcp && e1000e_is_tcp_ack(core, pkt)) {
+        *status |= E1000_RXD_STAT_ACK;
+        trace_e1000e_rx_metadata_ack();
+    }*/
+
+    /* RX CSO information */
+    if (isip6 && (core->mac[RFCTL] & E1000_RFCTL_IPV6_XSUM_DIS)) {
+        trace_e1000e_rx_metadata_ipv6_sum_disabled();
+        goto func_exit;
+    }
+
+    /*if (!net_rx_pkt_has_virt_hdr(pkt)) {
+        trace_e1000e_rx_metadata_no_virthdr();
+        e1000e_verify_csum_in_sw(core, pkt, status, istcp, isudp);
+        goto func_exit;
+    }*/
+
+    if (e1000e_rx_l3_cso_enabled(core)) {
+        *status |= isip4 ? E1000_RXD_STAT_IPCS : 0;
+    } else {
+        trace_e1000e_rx_metadata_l3_cso_disabled();
+    }
+
+    if (e1000e_rx_l4_cso_enabled(core)) {
+        if (istcp) {
+            *status |= E1000_RXD_STAT_TCPCS;
+        } else if (isudp) {
+            *status |= E1000_RXD_STAT_TCPCS | E1000_RXD_STAT_UDPCS;
+        }
+    } else {
+        trace_e1000e_rx_metadata_l4_cso_disabled();
+    }
+
+    trace_e1000e_rx_metadata_status_flags(*status);
+
+func_exit:
+    *status = cpu_to_le32(*status);
+}
+
 static void
 e1000e_build_rx_metadata(E1000ECore *core,
                          struct NetRxPkt *pkt,
@@ -1165,6 +1270,7 @@ e1000e_build_rx_metadata(E1000ECore *core,
                          uint16_t *ip_id,
                          uint16_t *vlan_tag)
 {
+    struct virtio_net_hdr *vhdr;
     bool isip4, isip6, istcp, isudp;
     uint32_t pkt_type;
 
@@ -1231,6 +1337,15 @@ e1000e_build_rx_metadata(E1000ECore *core,
         goto func_exit;
     }
 
+    vhdr = net_rx_pkt_get_vhdr(pkt);
+
+    if (!(vhdr->flags & VIRTIO_NET_HDR_F_DATA_VALID) &&
+        !(vhdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM)) {
+        trace_e1000e_rx_metadata_virthdr_no_csum_info();
+        e1000e_verify_csum_in_sw(core, pkt, status_flags, istcp, isudp);
+        goto func_exit;
+    }
+
     if (e1000e_rx_l3_cso_enabled(core)) {
         *status_flags |= isip4 ? E1000_RXD_STAT_IPCS : 0;
     } else {
@@ -1284,18 +1399,18 @@ e1000e_write_ext_rx_descr(E1000ECore *core, uint8_t *desc,
                           const E1000E_RSSInfo *rss_info,
                           uint16_t length)
 {
-    union e1000_rx_desc_extended *d = (union e1000_rx_desc_extended *) desc;
+    union e1000_adv_rx_desc *d = (union e1000_adv_rx_desc *) desc;
 
     memset(&d->wb, 0, sizeof(d->wb));
     d->wb.upper.length = cpu_to_le16(length);
 
-    e1000e_build_rx_metadata(core, pkt, pkt != NULL,
-                             rss_info,
-                             &d->wb.lower.hi_dword.rss,
-                             &d->wb.lower.mrq,
-                             &d->wb.upper.status_error,
-                             &d->wb.lower.hi_dword.csum_ip.ip_id,
-                             &d->wb.upper.vlan);
+    igb_build_rx_metadata(core, pkt, pkt != NULL, rss_info,
+        &d->wb.lower.lo_dword.pkt_info,
+        &d->wb.lower.lo_dword.hdr_info,
+        &d->wb.lower.hi_dword.csum_ip.ip_id,
+        &d->wb.lower.hi_dword.csum_ip.csum,
+        &d->wb.upper.status_error,
+        &d->wb.upper.vlan);
 }
 
 static inline void
@@ -1950,6 +2065,9 @@ e1000e_parse_rxbufsize(E1000ECore *core)
 static void
 e1000e_calc_rxdesclen(E1000ECore *core)
 {
+    core->rx_desc_len = sizeof(union e1000_adv_rx_desc);
+    return;
+
     if (e1000e_rx_use_legacy_descriptor(core)) {
         core->rx_desc_len = sizeof(struct e1000_rx_desc);
     } else {
