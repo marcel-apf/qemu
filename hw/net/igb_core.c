@@ -2594,14 +2594,6 @@ e1000e_set_16bit(E1000ECore *core, int index, uint32_t val)
 }
 
 static void
-e1000e_set_vet(E1000ECore *core, int index, uint32_t val)
-{
-    core->mac[VET] = val & 0xffff;
-    core->vet = le16_to_cpu(core->mac[VET]);
-    trace_e1000e_vlan_vet(core->vet);
-}
-
-static void
 e1000e_set_dlen(E1000ECore *core, int index, uint32_t val)
 {
     core->mac[index] = val & E1000_XDLEN_MASK;
@@ -3741,6 +3733,7 @@ static const writeops e1000e_macreg_writeops[] = {
     e1000e_putreg(GPIE),
     e1000e_putreg(TXPBS),
     e1000e_putreg(RLPML),
+    e1000e_putreg(VET),
 
     [TDH0]     = e1000e_set_16bit,
     [TDH1]     = e1000e_set_16bit,
@@ -3896,7 +3889,6 @@ static const writeops e1000e_macreg_writeops[] = {
     [FCRTV]    = e1000e_set_16bit,
     [FCRTH]    = e1000e_set_fcrth,
     [FCRTL]    = e1000e_set_fcrtl,
-    [VET]      = e1000e_set_vet,
     [FLASHT]   = e1000e_set_16bit,
     [EEWR]     = e1000e_set_eewr,
     [CTRL_DUP] = igb_set_ctrl,
@@ -4341,6 +4333,7 @@ static const uint32_t e1000e_mac_reg_init[] = {
     [TCTL]          = (0x1 << 3) | (0xF << 4) | (0x40 << 12) | (0x1 << 26) | (0xA << 28),
     [TCTL_EXT]      = 0x40 | (0x42 << 10),
     [DTXCTL]        = (0x1 << 2) | (0x1 << 6),
+    [VET]           = 0x81008100,
 
     [VFMAILBOX ... VFMAILBOX + 7] = BIT(6),
     [MBVFIMR]       = 0xFF,
