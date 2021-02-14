@@ -277,7 +277,7 @@ static void igbvf_class_init(ObjectClass *class, void *data)
     c->romfile = NULL;
     c->class_id = PCI_CLASS_NETWORK_ETHERNET;
 
-    dc->desc = "Intel 82576 GbE Controller Virtual Function";
+    dc->desc = "Intel 82576 Virtual Function";
     dc->reset = igbvf_pci_reset;
     //dc->vmsd = &igb_vmstate;
 

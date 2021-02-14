@@ -37,7 +37,7 @@
 #include "qemu/range.h"
 #include "sysemu/sysemu.h"
 #include "net/net.h"
-#include "linux/virtio_net.h"
+#include "net/eth.h"
 #include "hw/pci/pci.h"
 #include "hw/pci/pcie.h"
 #include "hw/pci/pcie_sriov.h"
@@ -55,7 +55,7 @@
 #include "qapi/error.h"
 
 #define TYPE_IGB "igb"
-#define IGB(obj)   OBJECT_CHECK(IgbState, (obj), TYPE_IGB)
+#define IGB(obj) OBJECT_CHECK(IgbState, (obj), TYPE_IGB)
 
 #define IGB_MSIX_VECTORS_PF 10
 #define IGB_CAP_SRIOV_OFFSET 0x160
@@ -219,8 +219,12 @@ static ssize_t igb_nc_receive_iov(NetClientState *nc, const struct iovec *iov, i
 
 static ssize_t igb_nc_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
-    IgbState *s = qemu_get_nic_opaque(nc);
-    return igb_receive(&s->core, buf, size);
+    const struct iovec iov = {
+        .iov_base = (uint8_t *)buf,
+        .iov_len = size
+    };
+
+    return igb_nc_receive_iov(nc, &iov, 1);
 }
 
 static void igb_set_link_status(NetClientState *nc)
@@ -567,10 +571,9 @@ static PropertyInfo igb_prop_subsys_ven,
 static Property igb_properties[] = {
     DEFINE_NIC_PROPERTIES(IgbState, conf),
     DEFINE_PROP_SIGNED("subsys_ven", IgbState, subsys_ven,
-                        PCI_VENDOR_ID_INTEL,
-                        igb_prop_subsys_ven, uint16_t),
+        PCI_VENDOR_ID_INTEL, igb_prop_subsys_ven, uint16_t),
     DEFINE_PROP_SIGNED("subsys", IgbState, subsys, 0,
-                        igb_prop_subsys, uint16_t),
+        igb_prop_subsys, uint16_t),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -587,27 +590,25 @@ static void igb_class_init(ObjectClass *class, void *data)
     c->romfile = NULL;
     c->class_id = PCI_CLASS_NETWORK_ETHERNET;
 
-    dc->desc = "Intel 82576 GbE Controller";
+    dc->desc = "Intel 82576 Gigabit Ethernet Controller";
     dc->reset = igb_reset;
     dc->vmsd = &igb_vmstate;
 
     igb_prop_subsys_ven = qdev_prop_uint16;
-    igb_prop_subsys_ven.description = "PCI device Subsystem Vendor ID";
-
+    igb_prop_subsys_ven.description = "PCI Device Subsystem Vendor ID";
     igb_prop_subsys = qdev_prop_uint16;
-    igb_prop_subsys.description = "PCI device Subsystem ID";
+    igb_prop_subsys.description = "PCI Device Subsystem ID";
 
     device_class_set_props(dc, igb_properties);
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
 }
 
-
 static void igb_instance_init(Object * obj)
 {
     IgbState *s = IGB(obj);
-    device_add_bootindex_property(obj, &s->conf.bootindex,
-                                  "bootindex", "/ethernet-phy@0",
-                                  DEVICE(obj));
+
+    device_add_bootindex_property(obj, &s->conf.bootindex, "bootindex",
+        "/ethernet-phy@0", DEVICE(obj));
 }
 
 static const TypeInfo igb_info = {
