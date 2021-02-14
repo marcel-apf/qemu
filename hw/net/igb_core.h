@@ -90,6 +90,7 @@ struct E1000Core {
         bool ixsm;      /* Insert IP Checksum */
         bool txsm;      /* Insert TCP/UDP Checksum */
 
+        bool first;
         bool skip_cp;
 
     } tx[E1000E_NUM_QUEUES];

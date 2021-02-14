@@ -634,12 +634,15 @@ static void igb_process_tx_desc(E1000ECore *core, struct e1000e_tx *tx,
         if ((cmd_type_len & E1000_ADVTXD_DTYP_DATA) ==
             E1000_ADVTXD_DTYP_DATA) {
             /* Advanced Transmit Data Descriptor */
-            olinfo_status = le32_to_cpu(tx_desc->read.olinfo_status);
-            tx->tse = !!(cmd_type_len & E1000_ADVTXD_DCMD_TSE);
-            tx->ixsm = !!(olinfo_status & E1000_ADVTXD_POTS_IXSM);
-            tx->txsm = !!(olinfo_status & E1000_ADVTXD_POTS_TXSM);
-            // TODO: Should always be on? It is on VF, not on PF.
-            tx->txsm = true;
+            if (tx->first) {
+                olinfo_status = le32_to_cpu(tx_desc->read.olinfo_status);
+
+                tx->tse = !!(cmd_type_len & E1000_ADVTXD_DCMD_TSE);
+                tx->ixsm = !!(olinfo_status & E1000_ADVTXD_POTS_IXSM);
+                tx->txsm = !!(olinfo_status & E1000_ADVTXD_POTS_TXSM);
+
+                tx->first = false;
+            }
         } else if ((cmd_type_len & E1000_ADVTXD_DTYP_CTXT) ==
                    E1000_ADVTXD_DTYP_CTXT) {
             /* Advanced Transmit Context Descriptor */
@@ -677,6 +680,7 @@ static void igb_process_tx_desc(E1000ECore *core, struct e1000e_tx *tx,
             }
         }
 
+        tx->first = true;
         tx->skip_cp = false;
         net_tx_pkt_reset(tx->tx_pkt);
     }
@@ -4508,6 +4512,7 @@ void igb_core_reset(E1000ECore *core)
         tx->tse = false;
         tx->ixsm = false;
         tx->txsm = false;
+        tx->first = true;
         tx->skip_cp = false;
     }
 }
