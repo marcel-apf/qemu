@@ -975,16 +975,6 @@ bool igb_can_receive(E1000ECore *core)
     return false;
 }
 
-ssize_t igb_receive(E1000ECore *core, const uint8_t *buf, size_t size)
-{
-    const struct iovec iov = {
-        .iov_base = (uint8_t *)buf,
-        .iov_len = size
-    };
-
-    return igb_receive_iov(core, &iov, 1);
-}
-
 static inline bool
 e1000e_rx_l3_cso_enabled(E1000ECore *core)
 {
