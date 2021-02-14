@@ -1,21 +1,31 @@
 /*
-* TBD
+* QEMU Intel 82576 SR/IOV Ethernet Controller Emulation
 *
-* This library is free software; you can redistribute it and/or
-* modify it under the terms of the GNU Lesser General Public
-* License as published by the Free Software Foundation; either
-* version 2 of the License, or (at your option) any later version.
+* Copyright (c) 2020-2021 Red Hat, Inc.
 *
-* This library is distributed in the hope that it will be useful,
+* Written by:
+* Gal Hammmer <ghammer@redhat.com>
+* Marcel Apfelbaum <marcel@redhat.com>
+*
+* Based on work written by Knut Omang.
+* Based on e1000e implementation.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-* Lesser General Public License for more details.
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
 *
-* You should have received a copy of the GNU Lesser General Public
-* License along with this library; if not, see <http://www.gnu.org/licenses/>.
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
 
 #include "qemu/osdep.h"
+#include "hw/hw.h"
 #include "hw/pci/pci.h"
 #include "hw/pci/pcie.h"
 #include "hw/pci/msix.h"
@@ -30,7 +40,7 @@
 
 #define PCI_DEVICE_ID_INTEL_82576_VF    0x10CA
 
-#define IGB_MSIX_VECTORS_VF (3)
+#define IGBVF_MSIX_VECTORS  (3)
 
 #define IGBVF_MMIO_BAR_IDX  (0)
 #define IGBVF_MSIX_BAR_IDX  (3)
@@ -144,17 +154,17 @@ static hwaddr vf_to_pf_addr(hwaddr addr, uint16_t vfn)
         case 0x24E8: /* E1000_PBRWAC */
             return 0x24E8;
     }
+
+    g_assert_not_reached();
+
     return addr;
 }
 
-static void igbvf_write_config(PCIDevice *d, uint32_t address, uint32_t val,
-                               int len)
+static void igbvf_write_config(PCIDevice *dev, uint32_t addr, uint32_t val,
+    int len)
 {
-    IgbVfState *s = IGBVF(d);
-    (void)s;
-
-    trace_igbvf_write_config(address, val, len);
-    pci_default_write_config(d, address, val, len);
+    trace_igbvf_write_config(addr, val, len);
+    pci_default_write_config(dev, addr, val, len);
 }
 
 static uint64_t igbvf_mmio_read(void *opaque, hwaddr addr, unsigned size)
@@ -166,8 +176,8 @@ static uint64_t igbvf_mmio_read(void *opaque, hwaddr addr, unsigned size)
     return igb_mmio_read(pf, addr, size);
 }
 
-static void igbvf_mmio_write(void *opaque, hwaddr addr,
-                             uint64_t val, unsigned size)
+static void igbvf_mmio_write(void *opaque, hwaddr addr, uint64_t val,
+    unsigned size)
 {
     PCIDevice *vf = PCI_DEVICE(opaque);
     PCIDevice *pf = pcie_sriov_get_pf(vf);
@@ -186,82 +196,49 @@ static const MemoryRegionOps mmio_ops = {
     },
 };
 
-static void igbvf_pci_realize(PCIDevice *d, Error **errp)
+static void igbvf_pci_realize(PCIDevice *dev, Error **errp)
 {
-    IgbVfState *s = IGBVF(d);
-    int ret;
-    int v;
+    IgbVfState *s = IGBVF(dev);
+    int i;
 
-    /* TBD: pci_e1000_realize(d, errp); */
-    if (*errp)
-        return;
+    dev->config_write = igbvf_write_config;
 
-    d->config_write = igbvf_write_config;
+    memory_region_init_io(&s->mmio, OBJECT(dev), &mmio_ops, s, "igbvf-mmio",
+        IGBVF_MMIO_SIZE);
+    pcie_sriov_vf_register_bar(dev, IGBVF_MMIO_BAR_IDX, &s->mmio);
 
-    memory_region_init_io(&s->mmio, OBJECT(d), &mmio_ops, s, "igbvf-mmio",
-                          IGBVF_MMIO_SIZE);
-    pcie_sriov_vf_register_bar(d, IGBVF_MMIO_BAR_IDX, &s->mmio);
+    memory_region_init(&s->msix, OBJECT(dev), "igbvf-msix", IGBVF_MSIX_SIZE);
+    pcie_sriov_vf_register_bar(dev, IGBVF_MSIX_BAR_IDX, &s->msix);
 
-    memory_region_init(&s->msix, OBJECT(d), "igbvf-msix", IGBVF_MSIX_SIZE);
-    pcie_sriov_vf_register_bar(d, IGBVF_MSIX_BAR_IDX, &s->msix);
+    (void)msix_init(dev, IGBVF_MSIX_VECTORS, &s->msix, IGBVF_MSIX_BAR_IDX, 0,
+        &s->msix, IGBVF_MSIX_BAR_IDX, 0x2000, 0x70, errp);
 
-    ret = msix_init(d, IGB_MSIX_VECTORS_VF, &s->msix,
-                    IGBVF_MSIX_BAR_IDX, 0, &s->msix,
-                    IGBVF_MSIX_BAR_IDX, 0x2000, 0x70, errp);
-    if (ret) {
-        goto err_msix;
-    }
-
-    for (v = 0; v < IGB_MSIX_VECTORS_VF; v++) {
-        ret = msix_vector_use(d, v);
-        if (ret) {
-            goto err_pcie_cap;
+    for (i = 0; i < IGBVF_MSIX_VECTORS; i++) {
+        if (msix_vector_use(dev, i) < 0) {
+            msix_unuse_all_vectors(dev);
+            msix_uninit(dev, &s->msix, &s->msix);
         }
     }
 
-    ret = pcie_endpoint_cap_init(d, 0xa0);
-    if (ret < 0) {
-        goto err_pcie_cap;
+    if (pcie_endpoint_cap_init(dev, 0xa0) < 0) {
+        hw_error("Failed to initialize PCIe capability");
     }
 
-    ret = pcie_aer_init(d, 1, 0x100, 0x40, errp);
-    if (ret < 0) {
-        goto err_aer;
+    if (pcie_aer_init(dev, 1, 0x100, 0x40, errp) < 0) {
+        hw_error("Failed to initialize AER capability");
     }
 
-    pcie_ari_init(d, 0x150, 1);
-    return;
-
- err_aer:
-    pcie_cap_exit(d);
- err_pcie_cap:
-    msix_unuse_all_vectors(d);
-    msix_uninit(d, &s->msix, &s->msix);
- err_msix:
-    return;
-    /* TBD: pci_e1000_uninit(d); */
+    pcie_ari_init(dev, 0x150, 1);
 }
 
-static void igbvf_pci_reset(DeviceState *dev)
+static void igbvf_pci_uninit(PCIDevice *dev)
 {
-    PCIDevice *d = PCI_DEVICE(dev);
     IgbVfState *s = IGBVF(dev);
 
-    (void)s;
-    (void)d;
-    trace_igb_cb_qdev_reset();
-
-    /* TBD */
-}
-
-static void igbvf_pci_uninit(PCIDevice *d)
-{
-    IgbVfState *igb = IGBVF(d);
-    MemoryRegion *mr = &igb->msix;
-
-    pcie_cap_exit(d);
-    msix_uninit(d, mr, mr);
-    /* TBD: pci_e1000_uninit(d); */
+    pcie_aer_exit(dev);
+    pcie_cap_exit(dev);
+    msix_unuse_all_vectors(dev);
+    msix_uninit(dev, &s->msix, &s->msix);
 }
 
 static void igbvf_class_init(ObjectClass *class, void *data)
@@ -278,16 +255,8 @@ static void igbvf_class_init(ObjectClass *class, void *data)
     c->class_id = PCI_CLASS_NETWORK_ETHERNET;
 
     dc->desc = "Intel 82576 Virtual Function";
-    dc->reset = igbvf_pci_reset;
-    //dc->vmsd = &igb_vmstate;
 
-    //device_class_set_props(dc, igb_properties);
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
-}
-
-static void igbvf_instance_init(Object * obj)
-{
-
 }
 
 static const TypeInfo igbvf_info = {
@@ -295,7 +264,6 @@ static const TypeInfo igbvf_info = {
     .parent = TYPE_PCI_DEVICE,
     .instance_size = sizeof(IgbVfState),
     .class_init = igbvf_class_init,
-    .instance_init = igbvf_instance_init,
     .interfaces = (InterfaceInfo[]) {
         { INTERFACE_PCIE_DEVICE },
         { }
