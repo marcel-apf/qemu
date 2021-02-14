@@ -603,7 +603,7 @@ static void igb_class_init(ObjectClass *class, void *data)
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
 }
 
-static void igb_instance_init(Object * obj)
+static void igb_instance_init(Object* obj)
 {
     IgbState *s = IGB(obj);
 
