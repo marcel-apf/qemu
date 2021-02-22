@@ -1,37 +1,31 @@
 /*
- * QEMU Intel 82576 SR/IOV capable Ethernet NIC emulation
- *
- * Intel developer's manual for these devices:
- * http://www.intel.com/content/dam/www/public/us/en/documents/datasheets/82576eg-gbe-datasheet.pdf
- *
- * Copied and edited from the E1000e QEMU emulation (e1000e.c) by Knut Omang.
- *
- * The E1000e code is authored by:
- * Dmitry Fleytman <dmitry@daynix.com>
- * Leonid Bloch <leonid@daynix.com>
- * Yan Vugenfirer <yan@daynix.com>
- *
- * Copyright (c) 2015 Ravello Systems LTD (http://ravellosystems.com)
- * Developed by Daynix Computing LTD (http://www.daynix.com)
- * Nir Peleg, Tutis Systems Ltd. for Qumranet Inc.
- * Copyright (c) 2008 Qumranet
- * Based on work done by:
- * Copyright (c) 2007 Dan Aloni
- * Copyright (c) 2004 Antony T Curtis
- *
- * This library is free software; you can redistribute it and/or
- * modify it under the terms of the GNU Lesser General Public
- * License as published by the Free Software Foundation; either
- * version 2 of the License, or (at your option) any later version.
- *
- * This library is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this library; if not, see <http://www.gnu.org/licenses/>.
- */
+* QEMU Intel 82576 SR/IOV Ethernet Controller Emulation
+*
+* Copyright (c) 2020-2021 Red Hat, Inc.
+*
+* Intel Datasheet: http://www.intel.com/
+* content/dam/www/public/us/en/documents/datasheets/82576eg-gbe-datasheet.pdf
+*
+* Written by:
+* Gal Hammmer <ghammer@redhat.com>
+* Marcel Apfelbaum <marcel@redhat.com>
+*
+* Based on work written by Knut Omang.
+* Based on e1000e implementation.
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 2 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 #include "qemu/osdep.h"
 #include "qemu/range.h"
@@ -57,11 +51,21 @@
 #define TYPE_IGB "igb"
 #define IGB(obj) OBJECT_CHECK(IgbState, (obj), TYPE_IGB)
 
-#define IGB_MSIX_VECTORS_PF 10
-#define IGB_CAP_SRIOV_OFFSET 0x160
-#define IGB_TOTAL_VFS 8
-#define IGB_VF_OFFSET 0x80
-#define IGB_VF_STRIDE 2
+#define IGB_TOTAL_VFS       (8)
+#define IGB_MSIX_VECTORS    (10)
+
+#define IGB_CAP_SRIOV_OFFSET    (0x160)
+#define IGB_VF_OFFSET           (0x80)
+#define IGB_VF_STRIDE           (2)
+
+#define IGB_MMIO_BAR_IDX    (0)
+#define IGB_FLASH_BAR_IDX   (1)
+#define IGB_IO_BAR_IDX      (2)
+#define IGB_MSIX_BAR_IDX    (3)
+
+#define IGB_MMIO_SIZE    (128 * 1024)
+#define IGB_FLASH_SIZE   (128 * 1024)
+#define IGB_IO_SIZE      (32)
 
 typedef struct IgbState {
     PCIDevice parent_obj;
@@ -75,33 +79,19 @@ typedef struct IgbState {
 
     uint32_t ioaddr;
 
-    uint16_t subsys_ven;
-    uint16_t subsys;
-
-    uint16_t subsys_ven_used;
-    uint16_t subsys_used;
-
     E1000ECore core;
 } IgbState;
 
-#define IGB_MMIO_BAR_IDX    0
-#define IGB_FLASH_BAR_IDX   1
-#define IGB_IO_BAR_IDX      2
-#define IGB_MSIX_BAR_IDX    3
-
-#define IGB_MMIO_SIZE    (128 * 1024)
-#define IGB_FLASH_SIZE   (128 * 1024)
-#define IGB_IO_SIZE      (32)
-
-static void igb_write_config(PCIDevice *d, uint32_t address,
-                             uint32_t val, int len)
+static void igb_write_config(PCIDevice *dev, uint32_t addr,
+    uint32_t val, int len)
 {
-    IgbState *s = IGB(d);
-    trace_igb_write_config(address, val, len);
-    pci_default_write_config(d, address, val, len);
+    IgbState *s = IGB(dev);
 
-    if (range_covers_byte(address, len, PCI_COMMAND) &&
-        (d->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
+    trace_igb_write_config(addr, val, len);
+    pci_default_write_config(dev, addr, val, len);
+
+    if (range_covers_byte(addr, len, PCI_COMMAND) &&
+        (dev->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
         igb_start_recv(&s->core);
     }
 }
@@ -117,6 +107,16 @@ void igb_mmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     IgbState *s = IGB(opaque);
     igb_core_write(&s->core, addr, val, size);
 }
+
+static const MemoryRegionOps mmio_ops = {
+    .read = igb_mmio_read,
+    .write = igb_mmio_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+    .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+};
 
 static bool igb_io_get_reg_index(IgbState *s, uint32_t *idx)
 {
@@ -141,7 +141,7 @@ static bool igb_io_get_reg_index(IgbState *s, uint32_t *idx)
 
 static uint64_t igb_io_read(void *opaque, hwaddr addr, unsigned size)
 {
-    IgbState *s = opaque;
+    IgbState *s = IGB(opaque);
     uint32_t idx = 0;
     uint64_t val;
 
@@ -162,10 +162,10 @@ static uint64_t igb_io_read(void *opaque, hwaddr addr, unsigned size)
     }
 }
 
-static void igb_io_write(void *opaque, hwaddr addr,
-                         uint64_t val, unsigned size)
+static void igb_io_write(void *opaque, hwaddr addr, uint64_t val,
+    unsigned size)
 {
-    IgbState *s = opaque;
+    IgbState *s = IGB(opaque);
     uint32_t idx = 0;
 
     switch (addr) {
@@ -185,16 +185,6 @@ static void igb_io_write(void *opaque, hwaddr addr,
     }
 }
 
-static const MemoryRegionOps mmio_ops = {
-    .read = igb_mmio_read,
-    .write = igb_mmio_write,
-    .endianness = DEVICE_LITTLE_ENDIAN,
-    .impl = {
-        .min_access_size = 4,
-        .max_access_size = 4,
-    },
-};
-
 static const MemoryRegionOps io_ops = {
     .read = igb_io_read,
     .write = igb_io_write,
@@ -211,13 +201,15 @@ static bool igb_nc_can_receive(NetClientState *nc)
     return igb_can_receive(&s->core);
 }
 
-static ssize_t igb_nc_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
+static ssize_t igb_nc_receive_iov(NetClientState *nc, const struct iovec *iov,
+    int iovcnt)
 {
     IgbState *s = qemu_get_nic_opaque(nc);
     return igb_receive_iov(&s->core, iov, iovcnt);
 }
 
-static ssize_t igb_nc_receive(NetClientState *nc, const uint8_t *buf, size_t size)
+static ssize_t igb_nc_receive(NetClientState *nc, const uint8_t *buf,
+    size_t size)
 {
     const struct iovec iov = {
         .iov_base = (uint8_t *)buf,
@@ -233,7 +225,6 @@ static void igb_set_link_status(NetClientState *nc)
     igb_core_set_link_status(&s->core);
 }
 
-
 static NetClientInfo net_igb_info = {
     .type = NET_CLIENT_DRIVER_NIC,
     .size = sizeof(NICState),
@@ -243,39 +234,33 @@ static NetClientInfo net_igb_info = {
     .link_status_changed = igb_set_link_status,
 };
 
-
-static int igb_add_pm_capability(PCIDevice *pdev, uint8_t offset, uint16_t pmc)
+static int igb_add_pm_capability(PCIDevice *dev, uint8_t offset, uint16_t pmc)
 {
-    Error *local_err = NULL;
-    int ret = pci_add_capability(pdev, PCI_CAP_ID_PM, offset,
-                                 PCI_PM_SIZEOF, &local_err);
+    Error *err = NULL;
+    int ret;
 
-    if (local_err) {
-        error_report_err(local_err);
+    ret = pci_add_capability(dev, PCI_CAP_ID_PM, offset, PCI_PM_SIZEOF, &err);
+    if (err) {
+        error_report_err(err);
         return ret;
     }
 
-    pci_set_word(pdev->config + offset + PCI_PM_PMC,
-                 PCI_PM_CAP_VER_1_1 |
-                 pmc);
+    pci_set_word(dev->config + offset + PCI_PM_PMC, PCI_PM_CAP_VER_1_1 | pmc);
 
-    pci_set_word(pdev->wmask + offset + PCI_PM_CTRL,
-                 PCI_PM_CTRL_STATE_MASK |
-                 PCI_PM_CTRL_PME_ENABLE |
-                 PCI_PM_CTRL_DATA_SEL_MASK);
+    pci_set_word(dev->wmask + offset + PCI_PM_CTRL, PCI_PM_CTRL_STATE_MASK |
+        PCI_PM_CTRL_PME_ENABLE | PCI_PM_CTRL_DATA_SEL_MASK);
 
-    pci_set_word(pdev->w1cmask + offset + PCI_PM_CTRL,
-                 PCI_PM_CTRL_PME_STATUS);
+    pci_set_word(dev->w1cmask + offset + PCI_PM_CTRL, PCI_PM_CTRL_PME_STATUS);
 
     return ret;
 }
 
-static void igb_init_net_peer(IgbState *s, PCIDevice *pci_dev, uint8_t *macaddr)
+static void igb_init_net_peer(IgbState *s, PCIDevice *dev, uint8_t *macaddr)
 {
-    DeviceState *dev = DEVICE(pci_dev);
+    DeviceState *ds = DEVICE(dev);
 
     s->nic = qemu_new_nic(&net_igb_info, &s->conf,
-        object_get_typename(OBJECT(s)), dev->id, s);
+        object_get_typename(OBJECT(s)), ds->id, s);
 
     s->core.max_queue_num = s->conf.peers.queues - 1;
 
@@ -314,137 +299,126 @@ static const uint16_t igb_eeprom_template[80] = {
   /* Word 0x50 - 0x5XX (sec.6.5) */
 };
 
-
-static void pci_igb_realize(PCIDevice *d, Error **errp)
+static void pci_igb_realize(PCIDevice *dev, Error **err)
 {
-    int v;
-    int ret;
-    IgbState *igb = IGB(d);
+    IgbState *s = IGB(dev);
     uint8_t *macaddr;
+    int ret;
+    int i;
 
     trace_igb_cb_pci_realize();
 
-    d->config_write = igb_write_config;
+    dev->config_write = igb_write_config;
 
-    d->config[PCI_CACHE_LINE_SIZE] = 0x10;
-    d->config[PCI_INTERRUPT_PIN] = 1;
+    dev->config[PCI_CACHE_LINE_SIZE] = 0x10;
+    dev->config[PCI_INTERRUPT_PIN] = 1;
 
     /* BAR0: MMIO */
-    memory_region_init_io(&igb->mmio, OBJECT(d), &mmio_ops, igb,
-                          "igb-mmio", IGB_MMIO_SIZE);
-    pci_register_bar(d, IGB_MMIO_BAR_IDX,
-                     PCI_BASE_ADDRESS_SPACE_MEMORY, &igb->mmio);
+    memory_region_init_io(&s->mmio, OBJECT(dev), &mmio_ops, s, "igb-mmio",
+        IGB_MMIO_SIZE);
+    pci_register_bar(dev, IGB_MMIO_BAR_IDX, PCI_BASE_ADDRESS_SPACE_MEMORY,
+        &s->mmio);
 
     /* BAR1: flash memory (dummy) */
-    memory_region_init(&igb->flash, OBJECT(d),
-                          "igb-flash", IGB_FLASH_SIZE);
-    pci_register_bar(d, IGB_FLASH_BAR_IDX,
-                     PCI_BASE_ADDRESS_SPACE_MEMORY, &igb->flash);
+    memory_region_init(&s->flash, OBJECT(dev), "igb-flash", IGB_FLASH_SIZE);
+    pci_register_bar(dev, IGB_FLASH_BAR_IDX, PCI_BASE_ADDRESS_SPACE_MEMORY,
+        &s->flash);
 
     /* BAR2: I/O ports */
-    memory_region_init_io(&igb->io, OBJECT(d), &io_ops, igb,
-                          "igb-io", IGB_IO_SIZE);
-    pci_register_bar(d, IGB_IO_BAR_IDX,
-                     PCI_BASE_ADDRESS_SPACE_IO, &igb->io);
+    memory_region_init_io(&s->io, OBJECT(dev), &io_ops, s, "igb-io",
+        IGB_IO_SIZE);
+    pci_register_bar(dev, IGB_IO_BAR_IDX, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
     /* BAR3: MSIX table */
-    memory_region_init(&igb->msix, OBJECT(d), "igb-msix", 0x4000);
-    pci_register_bar(d, IGB_MSIX_BAR_IDX,
-                     PCI_BASE_ADDRESS_MEM_TYPE_64, &igb->msix);
+    memory_region_init(&s->msix, OBJECT(dev), "igb-msix", 0x4000);
+    pci_register_bar(dev, IGB_MSIX_BAR_IDX, PCI_BASE_ADDRESS_MEM_TYPE_64,
+        &s->msix);
 
-    /* Add PCI capabilities in reverse order: */
-    ret = pcie_endpoint_cap_init(d, 0xa0);
+    /* Add PCI capabilities in reverse order */
+    ret = pcie_endpoint_cap_init(dev, 0xa0);
     if (ret < 0) {
         goto err_pcie_cap;
     }
 
-    ret = msix_init(d, IGB_MSIX_VECTORS_PF,
-                    &igb->msix, IGB_MSIX_BAR_IDX, 0,
-                    &igb->msix, IGB_MSIX_BAR_IDX, 0x2000,
-                    0x70, errp);
+    ret = msix_init(dev, IGB_MSIX_VECTORS,  &s->msix, IGB_MSIX_BAR_IDX, 0,
+        &s->msix, IGB_MSIX_BAR_IDX, 0x2000, 0x70, err);
     if (ret) {
         goto err_msix;
     }
 
-    ret = msi_init(d, 0x50, 1, true, true, errp);
+    ret = msi_init(dev, 0x50, 1, true, true, err);
     if (ret < 0) {
         goto err_msi;
     }
 
-    /* TBD: Only initialize the vectors used */
-    for (v = 0; v < IGB_MSIX_VECTORS_PF; v++) {
-        ret = msix_vector_use(d, v);
+    for (i = 0; i < IGB_MSIX_VECTORS; i++) {
+        ret = msix_vector_use(dev, i);
         if (ret) {
             goto err_pcie_cap;
         }
     }
 
-    if (igb_add_pm_capability(d, 0x40, PCI_PM_CAP_DSI) < 0) {
+    if (igb_add_pm_capability(dev, 0x40, PCI_PM_CAP_DSI) < 0) {
         hw_error("Failed to initialize PM capability");
     }
 
     /* PCIe extended capabilities (in order) */
-    ret = pcie_aer_init(d, 1, 0x100, 0x40, errp);
+    ret = pcie_aer_init(dev, 1, 0x100, 0x40, err);
     if (ret < 0) {
         goto err_aer;
     }
 
-    pcie_ari_init(d, 0x150, 1);
+    pcie_ari_init(dev, 0x150, 1);
 
-    pcie_sriov_pf_init(d, IGB_CAP_SRIOV_OFFSET, "igbvf",
-                       IGB_82576_VF_DEV_ID, IGB_TOTAL_VFS, IGB_TOTAL_VFS,
-                       IGB_VF_OFFSET, IGB_VF_STRIDE);
+    pcie_sriov_pf_init(dev, IGB_CAP_SRIOV_OFFSET, "igbvf",
+        IGB_82576_VF_DEV_ID, IGB_TOTAL_VFS, IGB_TOTAL_VFS, IGB_VF_OFFSET,
+        IGB_VF_STRIDE);
 
-    pcie_sriov_pf_init_vf_bar(d, 0,
+    pcie_sriov_pf_init_vf_bar(dev, 0,
         PCI_BASE_ADDRESS_MEM_TYPE_64 | PCI_BASE_ADDRESS_MEM_PREFETCH,
         16 * 1024);
-    pcie_sriov_pf_init_vf_bar(d, 3,
+    pcie_sriov_pf_init_vf_bar(dev, 3,
         PCI_BASE_ADDRESS_MEM_TYPE_64 | PCI_BASE_ADDRESS_MEM_PREFETCH,
         16 * 1024);
-
-    /* TBD: simple network stack side setup - rudely copied from e1000e.c
-     */
 
     /* Create networking backend */
-    qemu_macaddr_default_if_unset(&igb->conf.macaddr);
-    macaddr = igb->conf.macaddr.a;
+    qemu_macaddr_default_if_unset(&s->conf.macaddr);
+    macaddr = s->conf.macaddr.a;
 
-    igb_init_net_peer(igb, d, macaddr);
+    igb_init_net_peer(s, dev, macaddr);
 
     /* Initialize core */
-    igb->core.owner = &igb->parent_obj;
-    igb->core.owner_nic = igb->nic;
+    s->core.owner = &s->parent_obj;
+    s->core.owner_nic = s->nic;
 
-    igb_core_pci_realize(&igb->core,
-                            igb_eeprom_template,
-                            sizeof(igb_eeprom_template),
-                            macaddr);
+    igb_core_pci_realize(&s->core, igb_eeprom_template,
+        sizeof(igb_eeprom_template), macaddr);
+
     return;
- err_aer:
-    msi_uninit(d);
- err_msi:
-    msix_unuse_all_vectors(d);
-    msix_uninit(d, &igb->msix, &igb->msix);
- err_msix:
-    pcie_cap_exit(d);
- err_pcie_cap:
+
+err_aer:
+    msi_uninit(dev);
+err_msi:
+    msix_unuse_all_vectors(dev);
+    msix_uninit(dev, &s->msix, &s->msix);
+err_msix:
+    pcie_cap_exit(dev);
+err_pcie_cap:
     return;
-    /* TBD: pci_e1000_uninit(d); */
 }
 
-static void pci_igb_uninit(PCIDevice *d)
+static void pci_igb_uninit(PCIDevice *dev)
 {
-    IgbState *igb = IGB(d);
-    MemoryRegion *mr = &igb->msix;
+    IgbState *s = IGB(dev);
 
     trace_igb_cb_pci_uninit();
 
-    pcie_sriov_pf_exit(d);
-    pcie_cap_exit(d);
-    qemu_del_nic(igb->nic);
-    msix_unuse_all_vectors(d);
-    msix_uninit(d, mr, mr);
-    msi_uninit(d);
+    pcie_sriov_pf_exit(dev);
+    pcie_cap_exit(dev);
+    qemu_del_nic(s->nic);
+    msix_unuse_all_vectors(dev);
+    msix_uninit(dev, &s->msix, &s->msix);
+    msi_uninit(dev);
 }
 
 static void igb_reset(DeviceState *dev)
@@ -459,7 +433,7 @@ static void igb_reset(DeviceState *dev)
 
 static int igb_pre_save(void *opaque)
 {
-    IgbState *s = opaque;
+    IgbState *s = IGB(opaque);
 
     trace_igb_cb_pre_save();
 
@@ -469,17 +443,9 @@ static int igb_pre_save(void *opaque)
 
 static int igb_post_load(void *opaque, int version_id)
 {
-    IgbState *s = opaque;
+    IgbState *s = IGB(opaque);
 
     trace_igb_cb_post_load();
-
-    if ((s->subsys != s->subsys_used) ||
-        (s->subsys_ven != s->subsys_ven_used)) {
-        fprintf(stderr,
-            "ERROR: Cannot migrate while device properties "
-            "(subsys/subsys_ven) differ");
-        return -1;
-    }
     return igb_core_post_load(&s->core);
 }
 
@@ -493,6 +459,7 @@ static const VMStateDescription igb_vmstate_tx = {
         VMSTATE_BOOL(tse, struct e1000e_tx),
         VMSTATE_BOOL(ixsm, struct e1000e_tx),
         VMSTATE_BOOL(txsm, struct e1000e_tx),
+        VMSTATE_BOOL(first, struct e1000e_tx),
         VMSTATE_BOOL(skip_cp, struct e1000e_tx),
         VMSTATE_END_OF_LIST()
     }
@@ -541,8 +508,6 @@ static const VMStateDescription igb_vmstate = {
 
         VMSTATE_UINT32(core.delayed_causes, IgbState),
 
-        VMSTATE_UINT16(subsys, IgbState),
-        VMSTATE_UINT16(subsys_ven, IgbState),
         VMSTATE_E1000E_INTR_DELAY_TIMER(core.rdtr, IgbState),
         VMSTATE_E1000E_INTR_DELAY_TIMER(core.radv, IgbState),
         VMSTATE_E1000E_INTR_DELAY_TIMER(core.raid, IgbState),
@@ -565,15 +530,8 @@ static const VMStateDescription igb_vmstate = {
     }
 };
 
-static PropertyInfo igb_prop_subsys_ven,
-                    igb_prop_subsys;
-
 static Property igb_properties[] = {
     DEFINE_NIC_PROPERTIES(IgbState, conf),
-    DEFINE_PROP_SIGNED("subsys_ven", IgbState, subsys_ven,
-        PCI_VENDOR_ID_INTEL, igb_prop_subsys_ven, uint16_t),
-    DEFINE_PROP_SIGNED("subsys", IgbState, subsys, 0,
-        igb_prop_subsys, uint16_t),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -593,11 +551,6 @@ static void igb_class_init(ObjectClass *class, void *data)
     dc->desc = "Intel 82576 Gigabit Ethernet Controller";
     dc->reset = igb_reset;
     dc->vmsd = &igb_vmstate;
-
-    igb_prop_subsys_ven = qdev_prop_uint16;
-    igb_prop_subsys_ven.description = "PCI Device Subsystem Vendor ID";
-    igb_prop_subsys = qdev_prop_uint16;
-    igb_prop_subsys.description = "PCI Device Subsystem ID";
 
     device_class_set_props(dc, igb_properties);
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
