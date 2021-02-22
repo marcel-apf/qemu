@@ -121,17 +121,6 @@ e1000e_intrmgr_fire_delayed_interrupts(E1000ECore *core)
 }
 
 static void
-e1000e_intrmgr_on_timer(void *opaque)
-{
-    E1000IntrDelayTimer *timer = opaque;
-
-    trace_e1000e_irq_throttling_timer(timer->delay_reg << 2);
-
-    timer->running = false;
-    e1000e_intrmgr_fire_delayed_interrupts(timer->core);
-}
-
-static void
 e1000e_intrmgr_on_msix_throttling_timer(void *opaque)
 {
     E1000IntrDelayTimer *timer = opaque;
@@ -155,24 +144,6 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
 {
     int i;
 
-    core->radv.delay_reg = RADV;
-    core->rdtr.delay_reg = RDTR;
-    core->raid.delay_reg = RAID;
-    core->tadv.delay_reg = TADV;
-    core->tidv.delay_reg = TIDV;
-
-    core->radv.delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
-    core->rdtr.delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
-    core->raid.delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
-    core->tadv.delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
-    core->tidv.delay_resolution_ns = E1000_INTR_DELAY_NS_RES;
-
-    core->radv.core = core;
-    core->rdtr.core = core;
-    core->raid.core = core;
-    core->tadv.core = core;
-    core->tidv.core = core;
-
     for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         core->eitr[i].core = core;
         core->eitr[i].delay_reg = EITR + i;
@@ -183,41 +154,16 @@ e1000e_intrmgr_initialize_all_timers(E1000ECore *core, bool create)
         return;
     }
 
-    core->radv.timer =
-        timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->radv);
-    core->rdtr.timer =
-        timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->rdtr);
-    core->raid.timer =
-        timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->raid);
-
-    core->tadv.timer =
-        timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->tadv);
-    core->tidv.timer =
-        timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000e_intrmgr_on_timer, &core->tidv);
-
     for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         core->eitr[i].timer = timer_new_ns(QEMU_CLOCK_VIRTUAL,
             e1000e_intrmgr_on_msix_throttling_timer, &core->eitr[i]);
     }
 }
 
-static inline void
-e1000e_intrmgr_stop_delay_timers(E1000ECore *core)
-{
-    e1000e_intrmgr_stop_timer(&core->radv);
-    e1000e_intrmgr_stop_timer(&core->rdtr);
-    e1000e_intrmgr_stop_timer(&core->raid);
-    e1000e_intrmgr_stop_timer(&core->tidv);
-    e1000e_intrmgr_stop_timer(&core->tadv);
-}
-
 static bool
 e1000e_intrmgr_delay_rx_causes(E1000ECore *core, uint32_t *causes)
 {
     uint32_t delayable_causes;
-    uint32_t rdtr = core->mac[RDTR];
-    uint32_t radv = core->mac[RADV];
-    uint32_t raid = core->mac[RAID];
 
     if (msix_enabled(core->owner)) {
         return false;
@@ -230,29 +176,6 @@ e1000e_intrmgr_delay_rx_causes(E1000ECore *core, uint32_t *causes)
     /* Clean up all causes that may be delayed */
     core->delayed_causes |= *causes & delayable_causes;
     *causes &= ~delayable_causes;
-
-    /* Check if delayed RX interrupts disabled by client
-       or if there are causes that cannot be delayed */
-    if ((rdtr == 0) || (*causes != 0)) {
-        return false;
-    }
-
-    /* Check if delayed RX ACK interrupts disabled by client
-       and there is an ACK packet received */
-    if ((raid == 0) && (core->delayed_causes & E1000_ICR_ACK)) {
-        return false;
-    }
-
-    /* All causes delayed */
-    e1000e_intrmgr_rearm_timer(&core->rdtr);
-
-    if (!core->radv.running && (radv != 0)) {
-        e1000e_intrmgr_rearm_timer(&core->radv);
-    }
-
-    if (!core->raid.running && (core->delayed_causes & E1000_ICR_ACK)) {
-        e1000e_intrmgr_rearm_timer(&core->raid);
-    }
 
     return true;
 }
@@ -278,13 +201,6 @@ e1000e_intrmgr_delay_tx_causes(E1000ECore *core, uint32_t *causes)
         return false;
     }
 
-    /* All causes delayed */
-    e1000e_intrmgr_rearm_timer(&core->tidv);
-
-    if (!core->tadv.running && (core->mac[TADV] != 0)) {
-        e1000e_intrmgr_rearm_timer(&core->tadv);
-    }
-
     return true;
 }
 
@@ -301,8 +217,6 @@ e1000e_intmgr_collect_delayed_causes(E1000ECore *core)
     res = core->delayed_causes;
     core->delayed_causes = 0;
 
-    e1000e_intrmgr_stop_delay_timers(core);
-
     return res;
 }
 
@@ -310,12 +224,6 @@ static void
 e1000e_intrmgr_resume(E1000ECore *core)
 {
     int i;
-
-    e1000e_intmgr_timer_resume(&core->radv);
-    e1000e_intmgr_timer_resume(&core->rdtr);
-    e1000e_intmgr_timer_resume(&core->raid);
-    e1000e_intmgr_timer_resume(&core->tidv);
-    e1000e_intmgr_timer_resume(&core->tadv);
 
     for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         e1000e_intmgr_timer_resume(&core->eitr[i]);
@@ -326,12 +234,6 @@ static void
 e1000e_intrmgr_pause(E1000ECore *core)
 {
     int i;
-
-    e1000e_intmgr_timer_pause(&core->radv);
-    e1000e_intmgr_timer_pause(&core->rdtr);
-    e1000e_intmgr_timer_pause(&core->raid);
-    e1000e_intmgr_timer_pause(&core->tidv);
-    e1000e_intmgr_timer_pause(&core->tadv);
 
     for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         e1000e_intmgr_timer_pause(&core->eitr[i]);
@@ -345,8 +247,6 @@ e1000e_intrmgr_reset(E1000ECore *core)
 
     core->delayed_causes = 0;
 
-    e1000e_intrmgr_stop_delay_timers(core);
-
     for (i = 0; i < E1000E_MSIX_VEC_NUM; i++) {
         e1000e_intrmgr_stop_timer(&core->eitr[i]);
     }
@@ -356,18 +256,6 @@ static void
 e1000e_intrmgr_pci_unint(E1000ECore *core)
 {
     int i;
-
-    timer_del(core->radv.timer);
-    timer_free(core->radv.timer);
-    timer_del(core->rdtr.timer);
-    timer_free(core->rdtr.timer);
-    timer_del(core->raid.timer);
-    timer_free(core->raid.timer);
-
-    timer_del(core->tadv.timer);
-    timer_free(core->tadv.timer);
-    timer_del(core->tidv.timer);
-    timer_free(core->tidv.timer);
 
     for (i = 0; i < IGB_MSIX_VEC_NUM; i++) {
         timer_del(core->eitr[i].timer);
@@ -2785,32 +2673,6 @@ static void igb_set_ims(E1000ECore *core, int index, uint32_t val)
     igb_update_interrupt_state(core);
 }
 
-static void
-e1000e_set_rdtr(E1000ECore *core, int index, uint32_t val)
-{
-    e1000e_set_16bit(core, index, val);
-
-    if ((val & E1000_RDTR_FPD) && (core->rdtr.running)) {
-        trace_e1000e_irq_rdtr_fpd_running();
-        e1000e_intrmgr_fire_delayed_interrupts(core);
-    } else {
-        trace_e1000e_irq_rdtr_fpd_not_running();
-    }
-}
-
-static void
-e1000e_set_tidv(E1000ECore *core, int index, uint32_t val)
-{
-    e1000e_set_16bit(core, index, val);
-
-    if ((val & E1000_TIDV_FPD) && (core->tidv.running)) {
-        trace_e1000e_irq_tidv_fpd_running();
-        e1000e_intrmgr_fire_delayed_interrupts(core);
-    } else {
-        trace_e1000e_irq_tidv_fpd_not_running();
-    }
-}
-
 static uint32_t
 e1000e_mac_readreg(E1000ECore *core, int index)
 {
@@ -3293,7 +3155,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TDH13),
     e1000e_getreg(TDH14),
     e1000e_getreg(TDH15),
-    e1000e_getreg(RADV),
     e1000e_getreg(ECOL),
     e1000e_getreg(DC),
     e1000e_getreg(RLEC),
@@ -3336,7 +3197,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(WUC),
     e1000e_getreg(EECD),
     e1000e_getreg(MFUTP23),
-    e1000e_getreg(RAID),
     e1000e_getreg(FCRTV),
     e1000e_getreg(TXDCTL0),
     e1000e_getreg(TXDCTL1),
@@ -3510,7 +3370,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TDBAH13),
     e1000e_getreg(TDBAH14),
     e1000e_getreg(TDBAH15),
-    e1000e_getreg(RDTR),
     e1000e_getreg(SCC),
     e1000e_getreg(COLC),
     e1000e_getreg(CEXTERR),
@@ -3548,7 +3407,6 @@ static const readops e1000e_macreg_readops[] = {
     e1000e_getreg(TXSTMPH),
     e1000e_getreg(TIMADJH),
     e1000e_getreg(FCRTL),
-    e1000e_getreg(TADV),
     e1000e_getreg(XONRXC),
     e1000e_getreg(TSCTFC),
     e1000e_getreg(RFCTL),
@@ -3919,15 +3777,10 @@ static const writeops e1000e_macreg_writeops[] = {
     [EECD]     = e1000e_set_eecd,
     [RCTL]     = e1000e_set_rx_control,
     [CTRL]     = igb_set_ctrl,
-    [RDTR]     = e1000e_set_rdtr,
-    [RADV]     = e1000e_set_16bit,
-    [TADV]     = e1000e_set_16bit,
     [EERD]     = e1000e_set_eerd,
     [GCR]      = e1000e_set_gcr,
     [PSRCTL]   = e1000e_set_psrctl,
     [RXCSUM]   = e1000e_set_rxcsum,
-    [RAID]     = e1000e_set_16bit,
-    [TIDV]     = e1000e_set_tidv,
     [TDLEN0]   = e1000e_set_dlen,
     [TDLEN1]   = e1000e_set_dlen,
     [TDLEN2]   = e1000e_set_dlen,
@@ -4127,7 +3980,6 @@ static const uint16_t mac_reg_access[E1000E_MAC_SIZE] = {
     //[RDH0_A]  = 0x09bc, [RDT0_A]  = 0x09bc, [RDTR_A] = 0x09c6,
     [RDFH_A]  = 0xe904, [RDFT_A]  = 0xe904,
     //[TDH_A]   = 0x0cf8, [TDT_A]   = 0x0cf8,
-    [TIDV_A] = 0x0cf8,
     [TDFH_A]  = 0xed00, [TDFT_A]  = 0xed00,
     [RA_ALT ... RA_ALT + 31]      = 0x14f0,
     [VFTA_A ... VFTA_A + 127] = 0x1400,

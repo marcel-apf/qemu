@@ -102,13 +102,6 @@ struct E1000Core {
     /* Interrupt moderation management */
     uint32_t delayed_causes;
 
-    E1000IntrDelayTimer radv;
-    E1000IntrDelayTimer rdtr;
-    E1000IntrDelayTimer raid;
-
-    E1000IntrDelayTimer tadv;
-    E1000IntrDelayTimer tidv;
-
     E1000IntrDelayTimer eitr[IGB_MSIX_VEC_NUM];
     bool eitr_intr_pending[IGB_MSIX_VEC_NUM];
 

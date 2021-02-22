@@ -63,9 +63,10 @@
 #define IGB_IO_BAR_IDX      (2)
 #define IGB_MSIX_BAR_IDX    (3)
 
-#define IGB_MMIO_SIZE    (128 * 1024)
-#define IGB_FLASH_SIZE   (128 * 1024)
-#define IGB_IO_SIZE      (32)
+#define IGB_MMIO_SIZE   (128 * 1024)
+#define IGB_FLASH_SIZE  (128 * 1024)
+#define IGB_IO_SIZE     (32)
+#define IGB_MSIX_SIZE   (16 * 1024)
 
 typedef struct IgbState {
     PCIDevice parent_obj;
@@ -330,7 +331,7 @@ static void pci_igb_realize(PCIDevice *dev, Error **err)
     pci_register_bar(dev, IGB_IO_BAR_IDX, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
     /* BAR3: MSIX table */
-    memory_region_init(&s->msix, OBJECT(dev), "igb-msix", 0x4000);
+    memory_region_init(&s->msix, OBJECT(dev), "igb-msix", IGB_MSIX_SIZE);
     pci_register_bar(dev, IGB_MSIX_BAR_IDX, PCI_BASE_ADDRESS_MEM_TYPE_64,
         &s->msix);
 
@@ -507,12 +508,6 @@ static const VMStateDescription igb_vmstate = {
         VMSTATE_UINT8_ARRAY(core.permanent_mac, IgbState, ETH_ALEN),
 
         VMSTATE_UINT32(core.delayed_causes, IgbState),
-
-        VMSTATE_E1000E_INTR_DELAY_TIMER(core.rdtr, IgbState),
-        VMSTATE_E1000E_INTR_DELAY_TIMER(core.radv, IgbState),
-        VMSTATE_E1000E_INTR_DELAY_TIMER(core.raid, IgbState),
-        VMSTATE_E1000E_INTR_DELAY_TIMER(core.tadv, IgbState),
-        VMSTATE_E1000E_INTR_DELAY_TIMER(core.tidv, IgbState),
 
         VMSTATE_E1000E_INTR_DELAY_TIMER_ARRAY(core.eitr, IgbState,
                                               IGB_MSIX_VEC_NUM),

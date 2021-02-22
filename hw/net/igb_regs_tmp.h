@@ -143,9 +143,6 @@
 #define E1000_IVAR_MISC 0x01740  /* Interrupt Vector Allocation Register (last) - RW */
 #define E1000_EITR     0x01680  /* Extended Interrupt Throttling Rate - RW */
 #define E1000_RCTL     0x00100  /* RX Control - RW */
-#define E1000_RDTR     0x02820  /* RX Delay Timer - RW */
-#define E1000_RDTR_A   0x00108  /* Alias to RDTR */
-#define E1000_RDTR1    0x02820  /* RX Delay Timer (1) - RW */
 #define E1000_FCTTV    0x00170  /* Flow Control Transmit Timer Value - RW */
 #define E1000_FCRTV    0x05F40  /* Flow Control Refresh Timer Value - RW */
 #define E1000_TXCW     0x00178  /* TX Configuration Word - RW */
@@ -375,9 +372,6 @@
 #define E1000_FCRTH    0x02168  /* Flow Control Receive Threshold High - RW */
 #define E1000_FCRTH_A  0x00160  /* Alias to FCRTH */
 #define E1000_PSRCTL   0x02170  /* Packet Split Receive Control - RW */
-#define E1000_RDTR0    E1000_RDTR  /* RX Delay Timer (0) - RW */
-#define E1000_RADV     0x0282C  /* RX Interrupt Absolute Delay Timer - RW */
-#define E1000_RAID     0x02C08  /* Receive Ack Interrupt Delay - RW */
 #define E1000_TXDMAC   0x03000  /* TX DMA Control - RW */
 #define E1000_KABGTXD  0x03004  /* AFE Band Gap Transmit Ref Data */
 #define E1000_POEMB    0x00F10  /* PHY OEM Bits Register - RW */

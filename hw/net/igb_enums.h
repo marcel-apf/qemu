@@ -39,8 +39,8 @@ enum {
     defreg(TORH),    defreg(TORL),    defreg(TOTH),
     defreg(TOTL),    defreg(TPR),     defreg(TPT),     defreg(TXDCTL),
     defreg(WUFC),    defreg(RA),      defreg(MTA),     defreg(CRCERRS),
-    defreg(VFTA),    defreg(VET),     defreg(RDTR),    defreg(RADV),
-    defreg(TADV),    defreg(ITR),     defreg(SCC),     defreg(ECOL),
+    defreg(VFTA),    defreg(VET),
+    defreg(ITR),     defreg(SCC),     defreg(ECOL),
     defreg(MCC),     defreg(LATECOL), defreg(COLC),    defreg(DC),
     defreg(TNCRS),   defreg(SEQEC),   defreg(CEXTERR), defreg(RLEC),
     defreg(XONRXC),  defreg(XONTXC),  defreg(XOFFRXC), defreg(XOFFTXC),
@@ -65,7 +65,7 @@ enum {
     defreg(TSCTC),   defreg(RXCSUM),  defreg(FUNCTAG), defreg(GSCL_1),
     defreg(GSCL_2),  defreg(GSCL_3),  defreg(GSCL_4),  defreg(GSCN_0),
     defreg(GSCN_1),  defreg(GSCN_2),  defreg(GSCN_3),  defreg(GCR2),
-    defreg(RAID),    defreg(TIDV),    defreg(EITR),
+    defreg(EITR),
     defreg(MRQC),    defreg(RETA),    defreg(RSSRK),
     defreg(PBACLR),  defreg(FCAL),    defreg(FCAH),    defreg(FCT),
     defreg(FCRTH),   defreg(FCRTL),   defreg(FCTTV),   defreg(FCRTV),
@@ -91,7 +91,7 @@ enum {
 
     /* Aliases */
     defreg(RDFH_A),
-    defreg(RDFT_A),  defreg(TIDV_A),
+    defreg(RDFT_A),
     defreg(TDFH_A),  defreg(TDFT_A),  defreg(RA_ALT),
     defreg(VFTA_A),
     defreg(FCRTL_A), defreg(FCRTH_A),
@@ -296,8 +296,6 @@ enum {
     defreg(TDWBAH1_ALT),
     defreg(TDWBAH2_ALT),
     defreg(TDWBAH3_ALT),
-
-
 };
 
 #endif
