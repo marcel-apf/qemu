@@ -389,10 +389,7 @@
 #define E1000_TDFHS    0x03420  /* TX Data FIFO Head Saved - RW */
 #define E1000_TDFTS    0x03428  /* TX Data FIFO Tail Saved - RW */
 #define E1000_TDFPC    0x03430  /* TX Data FIFO Packet Count - RW */
-#define E1000_TIDV     0x03820  /* TX Interrupt Delay Value - RW */
-#define E1000_TIDV_A   0x00440  /* Alias to TIDV */
 #define E1000_TXDCTL   0x03828  /* TX Descriptor Control - RW */
-#define E1000_TADV     0x0382C  /* TX Interrupt Absolute Delay Val - RW */
 #define E1000_TSPMT    0x03830  /* TCP Segmentation PAD & Min Threshold - RW */
 #define E1000_TARC0    0x03840  /* TX Arbitration Count (0) */
 #define E1000_TARC1    0x03940  /* TX Arbitration Count (1) */
