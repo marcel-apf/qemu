@@ -459,8 +459,52 @@ e1000e_setup_tx_offloads(E1000ECore *core, struct e1000e_tx *tx)
     }
 }
 
-static bool
-e1000e_tx_pkt_send(E1000ECore *core, struct e1000e_tx *tx, int queue_index)
+/* TX Packets Switching (7.10.3.6) */
+static bool igb_tx_pkt_switch(E1000ECore *core, struct e1000e_tx *tx,
+    NetClientState *nc)
+{
+    struct vf_select_table *vst;
+    struct eth_header *ehdr;
+    bool ret, send_both;
+    int i;
+
+    /* TX switching is only used to serve VM to VM traffic. */
+    if (!pcie_sriov_is_iov(core->owner)) {
+        goto send_out;
+    }
+
+    /* TX switching requires DTXSWC.Loopback_en bit enabled. */
+    if (!(core->mac[DTXSWC] & BIT(31))) {
+        goto send_out;
+    }
+
+    if (net_tx_pkt_get_packet_type(tx->tx_pkt) == ETH_PKT_UCAST) {
+        ehdr = net_tx_pkt_get_eth_hdr(tx->tx_pkt);
+        for (i = ARRAY_SIZE(core->vf_select_table)-1; i >= 0; i--) {
+            vst = &core->vf_select_table[i];
+            if (!memcmp(ehdr->h_dest, &vst->macaddr, 6)) {
+                send_both = false;
+                goto send_back;
+            }
+        }
+        /* Unicast packet which doesn't target a VF is send to lan. */
+        goto send_out;
+    } else {
+        send_both = true;
+    }
+
+send_back:
+    ret = net_tx_pkt_send_loopback(tx->tx_pkt, nc);
+    if (!send_both) {
+        return ret;
+    }
+
+send_out:
+    return net_tx_pkt_send(tx->tx_pkt, nc);
+}
+
+static bool igb_tx_pkt_send(E1000ECore *core, struct e1000e_tx *tx,
+    int queue_index)
 {
     int target_queue = MIN(core->max_queue_num, queue_index);
     NetClientState *queue = qemu_get_subqueue(core->owner_nic, target_queue);
@@ -473,7 +517,7 @@ e1000e_tx_pkt_send(E1000ECore *core, struct e1000e_tx *tx, int queue_index)
         ((core->mac[RCTL] & E1000_RCTL_LBM_MAC) == E1000_RCTL_LBM_MAC)) {
         return net_tx_pkt_send_loopback(tx->tx_pkt, queue);
     } else {
-        return net_tx_pkt_send(tx->tx_pkt, queue);
+        return igb_tx_pkt_switch(core, tx, queue);
     }
 }
 
@@ -563,7 +607,7 @@ static void igb_process_tx_desc(E1000ECore *core, struct e1000e_tx *tx,
                 net_tx_pkt_setup_vlan_header_ex(tx->tx_pkt, tx->vlan,
                     core->vet);
             }
-            if (e1000e_tx_pkt_send(core, tx, queue_index)) {
+            if (igb_tx_pkt_send(core, tx, queue_index)) {
                 e1000e_on_tx_done_update_stats(core, tx->tx_pkt);
             }
         }
@@ -4137,7 +4181,7 @@ e1000e_autoneg_resume(E1000ECore *core)
 }
 
 static void
-e1000e_vm_state_change(void *opaque, int running, RunState state)
+e1000e_vm_state_change(void *opaque, bool running, RunState state)
 {
     E1000ECore *core = opaque;
 
@@ -4161,6 +4205,7 @@ void igb_core_pci_realize(E1000ECore     *core,
 
     core->autoneg_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
                                        e1000e_autoneg_timer, core);
+
     e1000e_intrmgr_pci_realize(core);
 
     core->vmstate =
