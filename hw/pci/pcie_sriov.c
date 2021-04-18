@@ -288,7 +288,7 @@ PCIDevice *pcie_sriov_get_pf(PCIDevice *dev)
 
 PCIDevice *pcie_sriov_get_vf(PCIDevice *dev, uint16_t vfn)
 {
-    if (vfn > dev->exp.sriov_pf.num_vfs) {
+    if (vfn >= dev->exp.sriov_pf.num_vfs) {
         return NULL;
     }
     return dev->exp.sriov_pf.vf[vfn];
