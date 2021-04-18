@@ -48,7 +48,7 @@
 #include "trace.h"
 #include "qapi/error.h"
 
-#define TYPE_IGB "igb"
+#define TYPE_IGB "e1000e"
 #define IGB(obj) OBJECT_CHECK(IgbState, (obj), TYPE_IGB)
 
 #define IGB_TOTAL_VFS       (8)
@@ -486,7 +486,7 @@ static const VMStateDescription igb_vmstate_intr_timer = {
                          igb_vmstate_intr_timer, E1000IntrDelayTimer)
 
 static const VMStateDescription igb_vmstate = {
-    .name = "igb",
+    .name = "e1000e",
     .version_id = 1,
     .minimum_version_id = 1,
     .pre_save = igb_pre_save,

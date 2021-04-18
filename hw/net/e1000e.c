@@ -54,7 +54,7 @@
 #include "qapi/error.h"
 #include "qom/object.h"
 
-#define TYPE_E1000E "e1000e"
+#define TYPE_E1000E "e1000e-old"
 OBJECT_DECLARE_SIMPLE_TYPE(E1000EState, E1000E)
 
 struct E1000EState {
@@ -600,7 +600,7 @@ static const VMStateDescription e1000e_vmstate_intr_timer = {
                          e1000e_vmstate_intr_timer, E1000IntrDelayTimer)
 
 static const VMStateDescription e1000e_vmstate = {
-    .name = "e1000e",
+    .name = "e1000e-old",
     .version_id = 1,
     .minimum_version_id = 1,
     .pre_save = e1000e_pre_save,

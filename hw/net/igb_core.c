@@ -1685,7 +1685,7 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
     E1000E_RxRing rxr;
     E1000E_RSSInfo rss_info;
     size_t total_size;
-    ssize_t retval;
+    ssize_t retval = 0;
     bool rdmts_hit;
     bool is_brd;
     int i;
