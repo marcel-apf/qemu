@@ -47,7 +47,6 @@
 #include "e1000x_common.h"
 #include "igb_enums.h"
 #include "igb_core.h"
-#include "igb_regs_new.h"
 
 #include "trace.h"
 
@@ -73,6 +72,23 @@ e1000e_lower_legacy_irq(E1000ECore *core)
 {
     trace_e1000e_irq_legacy_notify(false);
     pci_set_irq(core->owner, 0);
+}
+
+static void igb_msix_notify(E1000ECore *core, unsigned int vector)
+{
+    PCIDevice *dev = core->owner;
+    uint16_t vfn;
+
+    if (pcie_sriov_is_iov(core->owner)) {
+        vfn = 8 - (vector + 2) / 3;
+        if (vfn < pcie_sriov_vfs_count(core->owner)) {
+            dev = pcie_sriov_get_vf(core->owner, vfn);
+            assert(dev);
+            vector = (vector + 2) % 3;
+        }
+    }
+
+    msix_notify(dev, vector);
 }
 
 static inline void
@@ -136,7 +152,7 @@ e1000e_intrmgr_on_msix_throttling_timer(void *opaque)
     }
 
     trace_e1000e_irq_msix_notify_postponed_vec(idx);
-    msix_notify(timer->core->owner, idx);
+    igb_msix_notify(timer->core, idx);
 }
 
 static void
@@ -1737,7 +1753,7 @@ ssize_t igb_receive_iov(E1000ECore *core, const struct iovec *iov, int iovcnt)
         if (is_brd || (queues == 0)) {
             //e1000e_rss_parse_packet(core, core->rx_pkt, &rss_info);
             // TODO: fix RETA?
-            rss_info.queue = core->owner->exp.sriov_pf.num_vfs;
+            rss_info.queue = pcie_sriov_vfs_count(core->owner);
             queues |= BIT(rss_info.queue);
         }
     }
@@ -2077,10 +2093,8 @@ e1000e_fix_icr_asserted(E1000ECore *core)
 
 static void igb_send_msi(E1000ECore *core, bool msix)
 {
-    PCIDevice *vf;
     uint32_t causes = core->mac[EICR] & core->mac[EIMS];
     uint32_t effective_eiac;
-    uint16_t vfn;
     int vector;
 
     for (vector = 0; vector < IGB_MSIX_VEC_NUM; ++vector) {
@@ -2088,20 +2102,9 @@ static void igb_send_msi(E1000ECore *core, bool msix)
             !e1000e_eitr_should_postpone(core, vector)) {
 
             trace_e1000e_irq_msix_notify_vec(vector);
+            igb_msix_notify(core, vector);
 
-            if (!pcie_sriov_is_iov(core->owner) || (vector < 4)) {
-                msix_notify(core->owner, vector);
-            } else {
-                vfn = 7 - (vector-1)/3;
-                vf = pcie_sriov_get_vf(core->owner, vfn);
-                if (vf) { // TODO: Remove this. vf should not be null.
-                    msix_notify(vf, (vector-1)%3);
-                }
-            }
-
-            trace_e1000e_irq_icr_clear_eiac(core->mac[EICR],
-                                            core->mac[EIAC]);
-
+            trace_e1000e_irq_icr_clear_eiac(core->mac[EICR], core->mac[EIAC]);
             effective_eiac = core->mac[EIAC] & BIT(vector);
             core->mac[EICR] &= ~effective_eiac;
         }
